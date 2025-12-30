@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection Service</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+            overflow: hidden;
+        }
+        
+        #status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 10000;
+            border: 1px solid #0f0;
+        }
+        
+        .emoji-display {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 40px;
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #video {
+            width: 320px;
+            height: 240px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scaleX(-1);
+            display: none;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+        }
+        
+        .debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            max-width: 300px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">🚀 Initializing...</div>
+    <div class="emoji-display" id="emoji">🤖</div>
+    <video id="video" autoplay muted playsinline></video>
+    <div class="debug" id="debug">
+        Emotion: <span id="debug-emotion">none</span><br>
+        Confidence: <span id="debug-confidence">0%</span><br>
+        FPS: <span id="debug-fps">0</span><br>
+        Detections: <span id="debug-count">0</span>
+    </div>
+
+    <script>
+        // ========== CONFIGURATION ==========
+        const CONFIG = {
+            detectionInterval: 500, // ms between detections
+            minConfidence: 0.3,     // Minimum confidence threshold
+            emojiUpdateDelay: 300,  // Delay for emoji updates
+            parentOrigin: '*',      // Allow messages to any parent
+            enableDebug: false,     // Set to true for debugging
+            modelsUrl: 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'
+        };
+
+        // ========== GLOBAL STATE ==========
+        let currentEmotion = null;
+        let currentConfidence = 0;
+        let detectionCount = 0;
+        let lastDetectionTime = 0;
+        let fpsCounter = 0;
+        let lastFpsUpdate = Date.now();
+        let videoStream = null;
+        let detectionActive = true;
+
+        // Emotion emoji mapping
+        const EMOTION_EMOJIS = {
+            'happy': '😊',
+            'sad': '😢',
+            'angry': '😠',
+            'fearful': '😨',
+            'disgusted': '🤢',
+            'surprised': '😲',
+            'neutral': '😐'
+        };
+
+        const EMOTION_COLORS = {
+            'happy': '#4CAF50',
+            'sad': '#2196F3',
+            'angry': '#F44336',
+            'fearful': '#9C27B0',
+            'disgusted': '#795548',
+            'surprised': '#FF9800',
+            'neutral': '#9E9E9E'
+        };
+
+        // ========== DOM ELEMENTS ==========
+        const statusEl = document.getElementById('status');
+        const emojiEl = document.getElementById('emoji');
+        const videoEl = document.getElementById('video');
+        const debugEl = document.getElementById('debug');
+
+        // ========== INITIALIZATION ==========
+        async function init() {
+            console.log('🚀 Emotion Detector Service Starting...');
+            
+            try {
+                // Step 1: Start camera
+                await startCamera();
+                
+                // Step 2: Load face-api models
+                await loadModels();
+                
+                // Step 3: Start detection loop
+                startDetectionLoop();
+                
+                // Step 4: Start FPS counter
+                startFpsCounter();
+                
+                // Step 5: Notify parent that we're ready
+                notifyParent('ready', { status: 'active', version: '1.0' });
+                
+                statusEl.textContent = '✅ Active';
+                statusEl.style.color = '#0f0';
+                
+                console.log('✅ Emotion Detector Service Ready');
+                
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                statusEl.textContent = '❌ Error: ' + error.message;
+                statusEl.style.color = '#f00';
+                
+                // Notify parent of error
+                notifyParent('error', { message: error.message });
+            }
+        }
+
+        // ========== CAMERA SETUP ==========
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        width: { ideal: 320 },
+                        height: { ideal: 240 },
+                        frameRate: { ideal: 15 },
+                        facingMode: "user"
+                    },
+                    audio: false
+                };
+
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoEl.srcObject = videoStream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    videoEl.onloadedmetadata = () => {
+                        videoEl.play().then(resolve).catch(resolve);
+                    };
+                });
+
+                console.log('📹 Camera started successfully');
+                
+            } catch (error) {
+                console.error('❌ Camera error:', error);
+                throw new Error('Camera access denied or not available');
+            }
+        }
+
+        // ========== MODEL LOADING ==========
+        async function loadModels() {
+            statusEl.textContent = '🤖 Loading AI models...';
+            
+            try {
+                // Load face detection model
+                await faceapi.nets.tinyFaceDetector.loadFromUri(CONFIG.modelsUrl);
+                console.log('✅ TinyFaceDetector loaded');
+                
+                // Load emotion recognition model
+                await faceapi.nets.faceExpressionNet.loadFromUri(CONFIG.modelsUrl);
+                console.log('✅ FaceExpressionNet loaded');
+                
+                // Optional: Load face landmarks for better accuracy
+                try {
+                    await faceapi.nets.faceLandmark68Net.loadFromUri(CONFIG.modelsUrl);
+                    console.log('✅ FaceLandmark68Net loaded');
+                } catch (e) {
+                    console.log('⚠️ Face landmarks not available, continuing without');
+                }
+                
+            } catch (error) {
+                console.error('❌ Model loading failed:', error);
+                throw new Error('Failed to load AI models');
+            }
+        }
+
+        // ========== DETECTION LOOP ==========
+        function startDetectionLoop() {
+            async function detect() {
+                if (!detectionActive) return;
+                
+                fpsCounter++;
+                
+                try {
+                    // Detect face with expressions
+                    const detection = await faceapi
+                        .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({
+                            inputSize: 224,
+                            scoreThreshold: CONFIG.minConfidence
+                        }))
+                        .withFaceExpressions();
+                    
+                    if (detection) {
+                        detectionCount++;
+                        const expressions = detection.expressions;
+                        
+                        // Find the emotion with highest score
+                        let topEmotion = 'neutral';
+                        let topScore = 0;
+                        
+                        for (const [emotion, score] of Object.entries(expressions)) {
+                            if (score > topScore) {
+                                topScore = score;
+                                topEmotion = emotion;
+                            }
+                        }
+                        
+                        // Only update if confidence is above threshold
+                        if (topScore >= CONFIG.minConfidence) {
+                            const confidence = Math.round(topScore * 100);
+                            const emotionData = {
+                                emotion: topEmotion,
+                                confidence: confidence,
+                                rawScores: expressions,
+                                timestamp: Date.now(),
+                                detectionId: detectionCount
+                            };
+                            
+                            // Update state
+                            currentEmotion = topEmotion;
+                            currentConfidence = confidence;
+                            lastDetectionTime = Date.now();
+                            
+                            // Update UI
+                            updateEmoji(topEmotion);
+                            updateStatus(topEmotion, confidence);
+                            
+                            // Send to parent
+                            sendEmotionData(emotionData);
+                            
+                            // Update debug info if enabled
+                            if (CONFIG.enableDebug) {
+                                updateDebugInfo(emotionData);
+                            }
+                        } else {
+                            // No confident emotion detected
+                            updateEmoji('neutral');
+                            sendEmotionData({
+                                emotion: 'neutral',
+                                confidence: 0,
+                                timestamp: Date.now(),
+                                detectionId: detectionCount
+                            });
+                        }
+                    } else {
+                        // No face detected
+                        updateEmoji('no_face');
+                        sendEmotionData({
+                            emotion: 'no_face',
+                            confidence: 0,
+                            timestamp: Date.now(),
+                            detectionId: detectionCount
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Detection error:', error);
+                    // Don't stop on error, just continue
+                }
+                
+                // Schedule next detection
+                setTimeout(detect, CONFIG.detectionInterval);
+            }
+            
+            // Start the loop
+            detect();
+        }
+
+        // ========== UI UPDATES ==========
+        function updateEmoji(emotion) {
+            const emoji = EMOTION_EMOJIS[emotion] || '🤔';
+            const color = EMOTION_COLORS[emotion] || '#666';
+            
+            // Update emoji with smooth transition
+            emojiEl.textContent = emoji;
+            emojiEl.style.color = color;
+            emojiEl.style.textShadow = `0 0 10px ${color}80`;
+            
+            // Add subtle animation
+            emojiEl.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                emojiEl.style.transform = 'scale(1)';
+            }, 150);
+        }
+
+        function updateStatus(emotion, confidence) {
+            const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+            statusEl.textContent = `✅ ${emotionText} (${confidence}%)`;
+            statusEl.style.color = EMOTION_COLORS[emotion] || '#fff';
+        }
+
+        // ========== PARENT COMMUNICATION ==========
+        function sendEmotionData(data) {
+            // Method 1: Send via postMessage
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'emotionData',
+                    source: 'emotionDetector',
+                    data: data
+                }, CONFIG.parentOrigin);
+            }
+            
+            // Method 2: Dispatch custom event (for same-origin iframes)
+            try {
+                window.parent.dispatchEvent(new CustomEvent('emotionUpdate', {
+                    detail: data
+                }));
+            } catch (e) {
+                // This may fail if cross-origin, that's okay
+            }
+        }
+
+        function notifyParent(type, data) {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: type,
+                    source: 'emotionDetector',
+                    data: data
+                }, CONFIG.parentOrigin);
+            }
+        }
+
+        // ========== DEBUG UTILITIES ==========
+        function updateDebugInfo(data) {
+            if (debugEl.style.display === 'none') {
+                debugEl.style.display = 'block';
+            }
+            
+            document.getElementById('debug-emotion').textContent = data.emotion;
+            document.getElementById('debug-confidence').textContent = data.confidence + '%';
+            document.getElementById('debug-count').textContent = detectionCount;
+        }
+
+        function startFpsCounter() {
+            setInterval(() => {
+                const now = Date.now();
+                const elapsed = now - lastFpsUpdate;
+                const fps = Math.round((fpsCounter * 1000) / elapsed);
+                
+                if (CONFIG.enableDebug) {
+                    document.getElementById('debug-fps').textContent = fps;
+                }
+                
+                fpsCounter = 0;
+                lastFpsUpdate = now;
+            }, 1000);
+        }
+
+        // ========== CONTROL FUNCTIONS ==========
+        function startDetection() {
+            detectionActive = true;
+            notifyParent('started', { timestamp: Date.now() });
+            console.log('▶️ Detection started');
+        }
+
+        function stopDetection() {
+            detectionActive = false;
+            notifyParent('stopped', { timestamp: Date.now() });
+            console.log('⏸️ Detection stopped');
+        }
+
+        function getStatus() {
+            return {
+                active: detectionActive,
+                emotion: currentEmotion,
+                confidence: currentConfidence,
+                detectionCount: detectionCount,
+                lastDetection: lastDetectionTime,
+                cameraActive: !!videoStream
+            };
+        }
+
+        // ========== EXPOSE API ==========
+        window.EmotionDetector = {
+            start: startDetection,
+            stop: stopDetection,
+            getStatus: getStatus,
+            getCurrentEmotion: () => ({ emotion: currentEmotion, confidence: currentConfidence })
+        };
+
+        // ========== MESSAGE LISTENER ==========
+        window.addEventListener('message', (event) => {
+            // Accept messages from any origin for flexibility
+            if (event.data && event.data.type === 'control') {
+                const command = event.data.command;
+                
+                switch (command) {
+                    case 'start':
+                        startDetection();
+                        break;
+                    case 'stop':
+                        stopDetection();
+                        break;
+                    case 'getStatus':
+                        notifyParent('status', getStatus());
+                        break;
+                    case 'ping':
+                        notifyParent('pong', { timestamp: Date.now() });
+                        break;
+                }
+            }
+        });
+
+        // ========== ERROR HANDLING ==========
+        window.addEventListener('error', (event) => {
+            console.error('❌ Global error:', event.error);
+            notifyParent('error', { 
+                message: event.error.message,
+                stack: event.error.stack 
+            });
+        });
+
+        // ========== CLEANUP ==========
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            notifyParent('closed', { timestamp: Date.now() });
+        });
+
+        // ========== START EVERYTHING ==========
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Auto-start detection
+        setTimeout(startDetection, 2000);
+
+    </script>
+</body>
+</html>
