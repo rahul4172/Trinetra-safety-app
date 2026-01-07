@@ -1,1 +1,1 @@
-export const API_KEY = process.env.API_KEY;
+export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
