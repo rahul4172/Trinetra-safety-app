@@ -1,97 +1,131 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Women Safety - REAL Safe Places Finder</title>
+    <title>TRINETRA SAFETY | Women Safe Place Finder</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         :root {
-            --emergency-red: #ff4757;
-            --safe-green: #2ed573;
-            --police-blue: #3742fa;
-            --hospital-red: #ff6b81;
-            --pharmacy-orange: #ffa502;
-            --commercial-teal: #1e90ff;
-            --bottom-nav-height: 70px;
-            --top-bar-height: 60px;
+            --primary-color: #4A6FFF;
+            --primary-light: #E8EEFF;
+            --secondary-color: #FF6B8B;
+            --safe-color: #00C896;
+            --warning-color: #FFA726;
+            --emergency-color: #FF4757;
+            --background: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --light-bg: #F8FAFF;
+            --border-color: #E1E8FF;
+            --text-primary: #1A237E;
+            --text-secondary: #5A6C93;
+            --text-light: #8C9BCC;
+            --shadow: 0 8px 30px rgba(74, 111, 255, 0.08);
+            --shadow-hover: 0 15px 40px rgba(74, 111, 255, 0.12);
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --bottom-nav-height: 80px;
+            --top-bar-height: 70px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
             -webkit-tap-highlight-color: transparent;
         }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #0c2461;
-            color: white;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Text', sans-serif;
+            background: var(--light-bg);
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
             touch-action: pan-x pan-y;
         }
-        
-        /* EMERGENCY TOP BAR */
-        .emergency-top-bar {
+
+        /* APP HEADER */
+        .app-header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
-            color: white;
-            padding: 12px 15px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6A8AFF 100%);
+            padding: 0 20px;
             z-index: 1000;
             height: var(--top-bar-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(74, 111, 255, 0.15);
         }
-        
-        .emergency-top-bar h1 {
-            font-size: 18px;
-            font-weight: 700;
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .logo-container {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            flex-wrap: nowrap;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        
-        .emergency-top-bar p {
+
+        .logo-container i {
+            color: white;
+            font-size: 20px;
+        }
+
+        .app-title h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .app-title p {
             font-size: 12px;
             opacity: 0.9;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-top: 3px;
+            color: rgba(255, 255, 255, 0.9);
         }
-        
-        /* HAMBURGER MENU */
+
         .menu-btn {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.2);
-            border: none;
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1001;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
         }
-        
+
+        .menu-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.35);
+        }
+
         /* MAIN CONTAINER */
         .main-container {
             position: fixed;
@@ -101,31 +135,34 @@
             bottom: var(--bottom-nav-height);
             display: flex;
             flex-direction: column;
+            background: var(--light-bg);
         }
-        
+
         /* MAP */
-        #map { 
+        #map {
             flex: 1;
             width: 100%;
             z-index: 1;
+            background: #F0F4FF;
         }
-        
+
         /* BOTTOM NAVIGATION */
         .bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
+            background: var(--card-bg);
             height: var(--bottom-nav-height);
             display: flex;
             align-items: center;
             justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom);
-            box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 -4px 25px rgba(74, 111, 255, 0.08);
             z-index: 1000;
+            border-top: 1px solid var(--border-color);
         }
-        
+
         .nav-item {
             display: flex;
             flex-direction: column;
@@ -135,52 +172,141 @@
             height: 100%;
             background: transparent;
             border: none;
-            color: #666;
-            font-size: 10px;
-            gap: 4px;
+            color: var(--text-light);
+            font-size: 11px;
+            font-weight: 600;
+            gap: 6px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
+            position: relative;
         }
-        
+
         .nav-item.active {
-            color: #3742fa;
-            background: rgba(55, 66, 250, 0.05);
+            color: var(--primary-color);
         }
-        
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary-color);
+            border-radius: 0 0 4px 4px;
+        }
+
         .nav-item i {
-            font-size: 20px;
+            font-size: 24px;
+            transition: var(--transition);
         }
-        
+
+        .nav-item.active i {
+            transform: translateY(-2px);
+        }
+
         .nav-item.emergency {
-            color: #ff4757;
+            color: var(--emergency-color);
         }
-        
-        /* MAP CONTROLS OVERLAY */
+
+        .nav-item.emergency.active {
+            color: var(--emergency-color);
+        }
+
+        .nav-item.emergency.active::before {
+            background: var(--emergency-color);
+        }
+
+        /* MAP CONTROLS */
         .map-controls {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 25px;
+            right: 20px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
-        
+
         .map-control-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: white;
-            border: none;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+            width: 54px;
+            height: 54px;
+            border-radius: var(--radius-lg);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            color: #3742fa;
+            font-size: 22px;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .map-control-btn:active {
+            transform: scale(0.95);
+            box-shadow: var(--shadow-hover);
+            background: var(--primary-light);
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            position: fixed;
+            bottom: calc(var(--bottom-nav-height) + 20px);
+            left: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            padding: 18px 20px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            z-index: 1001;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
             cursor: pointer;
         }
-        
+
+        .status-bar:active {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--safe-color);
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.4);
+            }
+
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 10px rgba(0, 200, 150, 0);
+            }
+        }
+
+        .status-bar i {
+            margin-left: auto;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+
         /* SIDE PANEL */
         .side-panel {
             position: fixed;
@@ -188,203 +314,447 @@
             right: -100%;
             bottom: var(--bottom-nav-height);
             width: 100%;
-            background: white;
+            background: var(--light-bg);
             z-index: 1005;
-            transition: right 0.3s ease;
+            transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 20px 15px;
-            color: #333;
+            padding: 25px 20px;
+            border-left: 1px solid var(--border-color);
         }
-        
+
         .side-panel.active {
             right: 0;
         }
-        
+
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
-        
+
+        .panel-title h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .panel-title p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
         .close-panel {
-            background: #f8f9fa;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 18px;
-            color: #666;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            font-size: 20px;
+            color: var(--text-secondary);
             cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
         }
-        
+
+        .close-panel:active {
+            background: var(--primary-light);
+            transform: scale(0.95);
+        }
+
+        /* SEARCH BAR */
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 20px 20px 20px 60px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            font-size: 16px;
+            color: var(--text-primary);
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 111, 255, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            font-size: 20px;
+        }
+
         /* QUICK ACTIONS */
         .quick-actions {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 25px;
+            gap: 15px;
+            margin-bottom: 30px;
         }
-        
+
         .action-btn {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 22px 15px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            min-height: 80px;
+            transition: var(--transition);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
         }
-        
+
         .action-btn:active {
             transform: scale(0.98);
+            box-shadow: var(--shadow-hover);
         }
-        
-        .action-btn.primary {
-            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .action-btn.police {
+            background: linear-gradient(135deg, #E8F0FF 0%, #F0F5FF 100%);
+            border-color: #D1E0FF;
+        }
+
+        .action-btn.hospital {
+            background: linear-gradient(135deg, #FFF0F0 0%, #FFF5F5 100%);
+            border-color: #FFD1D1;
+        }
+
+        .action-btn.pharmacy {
+            background: linear-gradient(135deg, #F0FFF4 0%, #F5FFF8 100%);
+            border-color: #D1FFDF;
+        }
+
+        .action-btn.emergency-btn {
+            background: linear-gradient(135deg, var(--emergency-color) 0%, #FF6B8B 100%);
             color: white;
             border: none;
-            font-weight: bold;
+            font-weight: 700;
             grid-column: span 2;
         }
-        
+
         .action-btn .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 24px;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
         }
-        
+
+        .action-btn.police .icon {
+            background: rgba(74, 111, 255, 0.1);
+            color: var(--primary-color);
+        }
+
+        .action-btn.hospital .icon {
+            background: rgba(255, 107, 139, 0.1);
+            color: var(--secondary-color);
+        }
+
+        .action-btn.pharmacy .icon {
+            background: rgba(0, 200, 150, 0.1);
+            color: var(--safe-color);
+        }
+
+        .action-btn.emergency-btn .icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
         .action-btn .label {
-            font-size: 12px;
-            font-weight: bold;
-            line-height: 1.2;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 6px;
         }
-        
+
         .action-btn small {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-top: 2px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
-        
+
+        .action-btn.emergency-btn small {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         /* FILTER BUTTONS */
         .filter-scroll {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             overflow-x: auto;
-            padding: 15px 0;
+            padding: 15px 0 25px;
             margin-bottom: 20px;
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
-        
+
+        .filter-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
         .filter-btn {
-            background: #f8f9fa;
-            border: 2px solid #ddd;
-            border-radius: 20px;
-            padding: 10px 16px;
-            font-size: 13px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 14px 24px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
             flex-shrink: 0;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow);
         }
-        
+
         .filter-btn.active {
-            background: #3742fa;
+            background: var(--primary-color);
             color: white;
-            border-color: #3742fa;
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 20px rgba(74, 111, 255, 0.25);
         }
-        
+
+        .filter-btn:active {
+            transform: scale(0.95);
+        }
+
         /* SAFE PLACES LIST */
         .places-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 18px;
+            margin-bottom: 40px;
         }
-        
+
         .place-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 5px solid var(--police-blue);
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 24px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
             position: relative;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
         }
-        
+
         .place-card:active {
             transform: scale(0.99);
+            box-shadow: var(--shadow-hover);
         }
-        
-        .place-card.police { border-left-color: var(--police-blue); }
-        .place-card.hospital { border-left-color: var(--hospital-red); }
-        .place-card.pharmacy { border-left-color: var(--pharmacy-orange); }
-        .place-card.commercial { border-left-color: var(--commercial-teal); }
-        
+
+        .place-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .place-card.police {
+            background: linear-gradient(to right, #F8FAFF, #FFFFFF);
+            border-left: 6px solid var(--primary-color);
+        }
+
+        .place-card.hospital {
+            background: linear-gradient(to right, #FFF8F8, #FFFFFF);
+            border-left: 6px solid var(--secondary-color);
+        }
+
+        .place-card.pharmacy {
+            background: linear-gradient(to right, #F8FFFC, #FFFFFF);
+            border-left: 6px solid var(--safe-color);
+        }
+
+        .place-card.commercial {
+            background: linear-gradient(to right, #FFFCF8, #FFFFFF);
+            border-left: 6px solid var(--warning-color);
+        }
+
         .place-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
         }
-        
+
         .place-name {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 18px;
             flex: 1;
-            line-height: 1.3;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
+
+        .place-type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .place-card.police .place-type-icon {
+            background: rgba(74, 111, 255, 0.1);
+            color: var(--primary-color);
+        }
+
+        .place-card.hospital .place-type-icon {
+            background: rgba(255, 107, 139, 0.1);
+            color: var(--secondary-color);
+        }
+
+        .place-card.pharmacy .place-type-icon {
+            background: rgba(0, 200, 150, 0.1);
+            color: var(--safe-color);
+        }
+
+        .place-card.commercial .place-type-icon {
+            background: rgba(255, 167, 38, 0.1);
+            color: var(--warning-color);
+        }
+
         .place-distance {
-            background: #f8f9fa;
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 13px;
+            background: var(--light-bg);
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-size: 14px;
             margin-left: 10px;
             flex-shrink: 0;
+            min-width: 80px;
+            text-align: center;
+            border: 1px solid var(--border-color);
         }
-        
+
         .place-address {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 8px;
-            line-height: 1.4;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
         }
-        
+
+        .place-address i {
+            font-size: 14px;
+            margin-top: 3px;
+            color: var(--primary-color);
+        }
+
         .place-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
+            margin-top: 18px;
         }
-        
+
         .place-type {
-            font-size: 11px;
-            padding: 4px 12px;
-            border-radius: 15px;
+            font-size: 13px;
+            padding: 8px 18px;
+            border-radius: 25px;
             color: white;
-            font-weight: bold;
+            font-weight: 700;
         }
-        
-        .type-police { background: var(--police-blue); }
-        .type-pharmacy { background: var(--pharmacy-orange); }
-        .type-hospital { background: var(--hospital-red); }
-        .type-commercial { background: var(--commercial-teal); }
-        
+
+        .type-police {
+            background: var(--primary-color);
+        }
+
+        .type-hospital {
+            background: var(--secondary-color);
+        }
+
+        .type-pharmacy {
+            background: var(--safe-color);
+        }
+
+        .type-commercial {
+            background: var(--warning-color);
+        }
+
         .place-time {
-            font-size: 12px;
-            color: #27ae60;
-            font-weight: bold;
+            font-size: 14px;
+            color: var(--safe-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
+
+        .place-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .place-action-btn {
+            padding: 14px 20px;
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .place-action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .place-action-btn.call {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(74, 111, 255, 0.3);
+        }
+
+        .place-action-btn.navigate {
+            background: var(--safe-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 200, 150, 0.3);
+        }
+
         /* LOADING SCREEN */
         .loading-screen {
             position: fixed;
@@ -392,7 +762,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(12, 36, 97, 0.98);
+            background: var(--light-bg);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -401,26 +771,49 @@
             transition: opacity 0.3s;
             padding: 20px;
         }
-        
+
         .loading-screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
+
+        .loader {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .loader-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 6px solid transparent;
             border-radius: 50%;
-            border-top-color: #2ed573;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            animation: spin 1.5s linear infinite;
         }
-        
+
+        .loader-circle:nth-child(1) {
+            border-top-color: var(--primary-color);
+            animation-delay: 0s;
+        }
+
+        .loader-circle:nth-child(2) {
+            border-top-color: var(--secondary-color);
+            animation-delay: 0.2s;
+        }
+
+        .loader-circle:nth-child(3) {
+            border-top-color: var(--safe-color);
+            animation-delay: 0.4s;
+        }
+
         @keyframes spin {
-            100% { transform: rotate(360deg); }
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* EMERGENCY MODAL */
         .emergency-modal {
             display: none;
@@ -429,309 +822,251 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(255, 255, 255, 0.97);
             z-index: 2000;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
+
         .emergency-modal.active {
             display: flex;
         }
-        
+
         .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 30px 20px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 40px 30px;
             width: 100%;
-            max-width: 320px;
+            max-width: 350px;
             text-align: center;
-            animation: slideUp 0.3s;
+            animation: slideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 25px 60px rgba(255, 71, 87, 0.2);
         }
-        
+
         @keyframes slideUp {
-            from { transform: translateY(50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(60px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
-        
-        /* STATUS BAR */
-        .status-bar {
-            position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 10px);
-            left: 15px;
-            right: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px 15px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: bold;
-            z-index: 1001;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+
+        .modal-icon {
+            font-size: 80px;
+            color: var(--emergency-color);
+            margin-bottom: 25px;
+            animation: pulseEmergency 1.5s infinite;
+        }
+
+        @keyframes pulseEmergency {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.9;
+            }
+        }
+
+        .modal-content h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--emergency-color);
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .modal-content p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .countdown {
+            font-size: 80px;
+            font-weight: 900;
+            color: var(--emergency-color);
+            margin: 25px 0;
+            text-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+            font-family: monospace;
+        }
+
+        .emergency-btn {
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: none;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            background: var(--light-bg);
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
-            color: #2c3e50;
-            backdrop-filter: blur(10px);
+            justify-content: center;
+            gap: 12px;
+            border: 1px solid var(--border-color);
         }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #2ed573;
-            animation: pulse 2s infinite;
-            flex-shrink: 0;
+
+        .emergency-btn:active {
+            transform: scale(0.98);
+            background: #F0F4FF;
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
+
         /* MAP LEGEND */
         .map-legend {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            color: #333;
+            top: 25px;
+            left: 20px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-primary);
             z-index: 1000;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-            max-width: 180px;
-            backdrop-filter: blur(5px);
+            box-shadow: var(--shadow);
+            max-width: 220px;
+            border: 1px solid var(--border-color);
             display: none;
         }
-        
+
         .map-legend.active {
             display: block;
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .legend-header {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 12px;
+            gap: 12px;
         }
-        
+
         .legend-color {
-            width: 10px;
-            height: 10px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            margin-right: 8px;
             flex-shrink: 0;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
-        /* SWIPE INDICATOR */
-        .swipe-indicator {
-            position: absolute;
-            bottom: var(--bottom-nav-height);
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: rgba(55, 66, 250, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
+
+        .legend-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
-        
-        .swipe-handle {
-            width: 40px;
-            height: 4px;
-            background: #3742fa;
-            border-radius: 2px;
-        }
-        
-        /* TOUCH-FRIENDLY BUTTONS */
-        .touch-btn {
-            padding: 15px 20px;
-            border-radius: 12px;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-        }
-        
-        .touch-btn:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-        
-        /* SEARCH BAR */
-        .search-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 15px 45px 15px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            background: white;
-            color: #333;
-        }
-        
-        .search-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #666;
-            font-size: 18px;
-            cursor: pointer;
-        }
-        
-        /* SAFE ROUTE HIGHLIGHT */
-        .safe-route {
-            stroke-dasharray: 10, 10;
-            animation: dash 1s linear infinite;
-        }
-        
-        @keyframes dash {
-            to { stroke-dashoffset: 20; }
-        }
-        
-        /* MEDIA QUERIES FOR EXTRA SMALL SCREENS */
+
+        /* RESPONSIVE ADJUSTMENTS */
         @media (max-width: 360px) {
-            .emergency-top-bar h1 {
+            .app-title h1 {
+                font-size: 18px;
+            }
+
+            .action-btn .label {
+                font-size: 13px;
+            }
+
+            .place-name {
                 font-size: 16px;
             }
-            
-            .action-btn .label {
-                font-size: 11px;
-            }
-            
-            .place-name {
-                font-size: 14px;
-            }
-            
-            .filter-btn {
-                padding: 8px 14px;
-                font-size: 12px;
+
+            .panel-title h2 {
+                font-size: 22px;
             }
         }
-        
-        /* LANDSCAPE MODE ADJUSTMENTS */
+
         @media (orientation: landscape) and (max-height: 500px) {
-            .emergency-top-bar {
-                height: 50px;
-                padding: 8px 15px;
-            }
-            
-            .emergency-top-bar h1 {
-                font-size: 16px;
-            }
-            
-            .main-container {
-                top: 50px;
-                bottom: 60px;
-            }
-            
-            .bottom-nav {
+            .app-header {
                 height: 60px;
+                padding: 0 15px;
             }
-            
+
+            .main-container {
+                top: 60px;
+                bottom: 70px;
+            }
+
+            .bottom-nav {
+                height: 70px;
+            }
+
             .side-panel {
-                top: 50px;
-                bottom: 60px;
+                top: 60px;
+                bottom: 70px;
                 max-width: 400px;
             }
         }
-        
-        /* DARK MODE SUPPORT */
-        @media (prefers-color-scheme: dark) {
-            .side-panel,
-            .place-card,
-            .action-btn,
-            .modal-content,
-            .map-legend,
-            .status-bar {
-                background: #1a1a1a;
-                color: #fff;
-            }
-            
-            .place-card {
-                border-left-color: #333;
-            }
-            
-            .place-name,
-            .place-distance {
-                color: #fff;
-            }
-            
-            .place-distance {
-                background: #333;
-            }
-            
-            .filter-btn {
-                background: #333;
-                border-color: #444;
-                color: #fff;
-            }
-            
-            .filter-btn.active {
-                background: #3742fa;
-            }
-            
-            .search-input {
-                background: #333;
-                color: #fff;
-                border-color: #444;
-            }
-        }
-        
-        /* SAFE AREA INSETS FOR NOTCHED PHONES */
+
+        /* SAFE AREA INSETS */
         @supports(padding: max(0px)) {
             .bottom-nav {
-                padding-bottom: max(15px, env(safe-area-inset-bottom));
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
             }
-            
+
             .main-container {
                 top: max(var(--top-bar-height), env(safe-area-inset-top));
             }
         }
     </style>
 </head>
+
 <body>
 
-    <!-- EMERGENCY TOP BAR -->
-    <div class="emergency-top-bar">
+    <!-- APP HEADER -->
+    <div class="app-header">
+        <div class="header-content">
+            <div class="logo-container">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="app-title">
+                <h1>TRINETRA SAFETY</h1>
+                <p>Safety Place Finder</p>
+            </div>
+        </div>
         <button class="menu-btn" onclick="toggleSidePanel()">
             <i class="fas fa-bars"></i>
         </button>
-        <div>
-            <h1>
-                <i class="fas fa-shield-alt"></i>
-                WOMEN SAFETY
-                <i class="fas fa-exclamation-triangle"></i>
-            </h1>
-            <p>Real-time safe places near you</p>
-        </div>
-    </div>
-
-    <!-- SWIPE INDICATOR -->
-    <div class="swipe-indicator">
-        <div class="swipe-handle"></div>
     </div>
 
     <!-- MAIN CONTAINER -->
     <div class="main-container">
         <div id="map"></div>
-        
+
         <!-- MAP CONTROLS -->
         <div class="map-controls">
             <button class="map-control-btn" onclick="focusOnUser()" title="My Location">
@@ -741,48 +1076,52 @@
                 <i class="fas fa-layer-group"></i>
             </button>
         </div>
-        
+
         <!-- MAP LEGEND -->
         <div class="map-legend" id="mapLegend">
-            <h4 style="margin: 0 0 10px 0;">Real Places</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background: var(--police-blue);"></div>
-                <span>Police Stations</span>
+            <div class="legend-header">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Nearby Safety Points</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: var(--hospital-red);"></div>
-                <span>Hospitals</span>
+                <div class="legend-color" style="background: #4A6FFF;"></div>
+                <span class="legend-text">Police Stations</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: var(--pharmacy-orange);"></div>
-                <span>Pharmacies</span>
+                <div class="legend-color" style="background: #FF6B8B;"></div>
+                <span class="legend-text">Hospitals</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: var(--commercial-teal);"></div>
-                <span>24x7 Shops</span>
+                <div class="legend-color" style="background: #00C896;"></div>
+                <span class="legend-text">Pharmacies</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFA726;"></div>
+                <span class="legend-text">24/7 Stores</span>
             </div>
         </div>
     </div>
 
     <!-- STATUS BAR -->
-    <div class="status-bar">
+    <div class="status-bar" onclick="toggleSidePanel()">
         <div class="status-dot"></div>
         <span id="statusText">Getting your location...</span>
+        <i class="fas fa-chevron-up"></i>
     </div>
 
     <!-- BOTTOM NAVIGATION -->
     <div class="bottom-nav">
         <button class="nav-item active" onclick="showMapView()">
-            <i class="fas fa-map-marker-alt"></i>
+            <i class="fas fa-map"></i>
             <span>Map</span>
         </button>
         <button class="nav-item" onclick="showPlacesView()">
             <i class="fas fa-list"></i>
             <span>Places</span>
         </button>
-        <button class="nav-item" onclick="showEmergencyView()">
-            <i class="fas fa-exclamation-circle"></i>
-            <span>Safety</span>
+        <button class="nav-item" onclick="goHome()">
+            <i class="fas fa-home"></i>
+            <span>HOME</span>
         </button>
         <button class="nav-item emergency" onclick="triggerEmergencySOS()">
             <i class="fas fa-sos"></i>
@@ -793,30 +1132,34 @@
     <!-- SIDE PANEL -->
     <div class="side-panel" id="sidePanel">
         <div class="panel-header">
-            <h2 style="color: #2c3e50;">Safe Places Nearby</h2>
+            <div class="panel-title">
+                <h2>Safe Places Nearby</h2>
+                <p>Find help when you need it most</p>
+            </div>
             <button class="close-panel" onclick="toggleSidePanel()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
+
         <!-- SEARCH BAR -->
         <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search safe places..." id="searchInput">
-            <button class="search-btn">
+            <div class="search-icon">
                 <i class="fas fa-search"></i>
-            </button>
+            </div>
+            <input type="text" class="search-input" placeholder="Search police, hospitals, pharmacies..."
+                id="searchInput">
         </div>
-        
+
         <!-- QUICK ACTIONS -->
         <div class="quick-actions" id="quickActions">
             <!-- Dynamically populated -->
         </div>
-        
+
         <!-- FILTER BUTTONS -->
         <div class="filter-scroll" id="filterButtons">
             <!-- Dynamically populated -->
         </div>
-        
+
         <!-- SAFE PLACES LIST -->
         <div class="places-list" id="placesContainer">
             <!-- Real places will be loaded here -->
@@ -825,23 +1168,31 @@
 
     <!-- LOADING SCREEN -->
     <div class="loading-screen" id="loadingScreen">
-        <div class="spinner"></div>
-        <h3 style="color: white; margin-bottom: 10px; text-align: center;">Finding real safe places...</h3>
-        <p style="color: rgba(255,255,255,0.8); text-align: center; font-size: 14px;">
-            Scanning for police, hospitals, pharmacies and 24x7 establishments
+        <div class="loader">
+            <div class="loader-circle"></div>
+            <div class="loader-circle"></div>
+            <div class="loader-circle"></div>
+        </div>
+        <h3 style="color: var(--text-primary); margin-bottom: 15px; text-align: center;">Finding Safe Places</h3>
+        <p style="color: var(--text-secondary); text-align: center; font-size: 15px; max-width: 320px;">
+            Scanning your area for police stations, hospitals, pharmacies, and 24/7 establishments
         </p>
     </div>
 
     <!-- EMERGENCY MODAL -->
     <div class="emergency-modal" id="emergencyModal">
         <div class="modal-content">
-            <i class="fas fa-exclamation-triangle" style="font-size: 60px; color: #ff4757; margin-bottom: 20px;"></i>
-            <h2 style="color: #ff4757; margin-bottom: 10px;">EMERGENCY SOS</h2>
-            <p style="color: #666; margin-bottom: 25px; font-size: 15px;">
-                Police and emergency contacts will be notified in:
+            <div class="modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2>EMERGENCY SOS</h2>
+            <p>Help will be notified automatically in:</p>
+            <div class="countdown" id="countdown">5</div>
+            <p style="font-size: 14px; color: var(--text-light);">
+                Police (100) • Women Helpline (1091) • Trusted Contacts
             </p>
-            <div class="countdown" id="countdown" style="font-size: 48px; font-weight: bold; color: #ff4757; margin: 20px 0;">5</div>
-            <button class="touch-btn" onclick="cancelEmergency()" style="background: #f1f2f6; color: #333;">
+            <button class="emergency-btn" onclick="cancelEmergency()">
+                <i class="fas fa-times-circle"></i>
                 CANCEL EMERGENCY
             </button>
         </div>
@@ -857,80 +1208,79 @@
         let currentFilter = 'all';
         let sidePanelOpen = false;
         let activeView = 'map';
-        
+        let emergencyCountdownInterval = null;
+
         // ==================== INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initializeMap();
             getUserLocation();
-            setupTouchEvents();
-            updateStatus("Initializing safety system...");
+            setupEventListeners();
+            updateStatus("🔍 Initializing safety system...");
         });
-        
+
         function initializeMap() {
             map = L.map('map').setView([22.5726, 88.3639], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap | Women Safety'
+
+            // Use light theme map tiles
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, © CARTO | Women Safety Network',
+                maxZoom: 19
             }).addTo(map);
-            
-            // Disable drag on mobile for better touch
-            map.touchZoom.disable();
-            map.doubleClickZoom.disable();
-            
-            // Add scale for mobile
-            L.control.scale({ 
+
+            // Add scale
+            L.control.scale({
                 imperial: false,
                 position: 'bottomleft'
             }).addTo(map);
         }
-        
-        function setupTouchEvents() {
-            // Swipe to open panel
-            let startY;
-            const panel = document.getElementById('sidePanel');
-            
-            document.addEventListener('touchstart', (e) => {
-                startY = e.touches[0].clientY;
+
+        function setupEventListeners() {
+            // Search input with debounce
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', function (e) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchPlaces(e.target.value);
+                }, 300);
             });
-            
-            document.addEventListener('touchmove', (e) => {
-                if (!startY) return;
-                
-                const currentY = e.touches[0].clientY;
-                const diff = startY - currentY;
-                
-                // Vertical swipe up to open panel
-                if (diff > 50 && !sidePanelOpen) {
-                    toggleSidePanel();
-                    startY = null;
+
+            // Enter key for search
+            document.getElementById('searchInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    searchPlaces(this.value);
                 }
             });
+
+            // Prevent map touch events from interfering
+            map.getContainer().addEventListener('touchstart', function (e) {
+                e.stopPropagation();
+            }, { passive: true });
         }
-        
+
         // ==================== GET USER LOCATION ====================
         function getUserLocation() {
             updateStatus("📍 Getting your location...");
-            
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     position => {
                         userLocation = [position.coords.latitude, position.coords.longitude];
-                        console.log("User location:", userLocation);
-                        
+                        console.log("User location found:", userLocation);
+
                         // Center map on user
                         focusOnUser();
-                        
-                        // Find REAL places
+
+                        // Find REAL places (ALL TYPES)
                         findRealSafePlaces();
                     },
                     error => {
                         console.error("Geolocation failed:", error);
-                        updateStatus("⚠️ Using default location. Enable GPS.");
+                        updateStatus("⚠️ Using default location. Enable GPS for better results.");
                         userLocation = [22.5726, 88.3639];
                         findRealSafePlaces();
                     },
-                    { 
-                        enableHighAccuracy: true, 
+                    {
+                        enableHighAccuracy: true,
                         timeout: 10000,
                         maximumAge: 0
                     }
@@ -941,137 +1291,199 @@
                 findRealSafePlaces();
             }
         }
-        
-        // ==================== FIND REAL SAFE PLACES ====================
+
+        // ==================== FIND ALL TYPES OF SAFE PLACES ====================
         async function findRealSafePlaces() {
             updateStatus("🔍 Searching for safe places...");
             showLoading(true);
-            
+
             if (!userLocation) {
                 updateStatus("❌ No location data");
                 showLoading(false);
                 return;
             }
-            
+
             const [lat, lng] = userLocation;
             allRealPlaces = [];
-            
+
             try {
                 // Search for police stations
+                console.log("Searching for police stations...");
                 const policePlaces = await searchOverpass(
                     `[out:json];
-                    node["amenity"="police"](around:2000,${lat},${lng});
-                    out body;`,
+                    (
+                        node["amenity"="police"](around:3000,${lat},${lng});
+                        way["amenity"="police"](around:3000,${lat},${lng});
+                    );
+                    out center;`,
                     'police'
                 );
-                
-                // Search for pharmacies
-                const pharmacyPlaces = await searchOverpass(
-                    `[out:json];
-                    (node["amenity"="pharmacy"](around:1000,${lat},${lng});
-                    node["healthcare"="pharmacy"](around:1000,${lat},${lng}););
-                    out body;`,
-                    'pharmacy'
-                );
-                
+                console.log(`Found ${policePlaces.length} police stations`);
+
                 // Search for hospitals
+                console.log("Searching for hospitals...");
                 const hospitalPlaces = await searchOverpass(
                     `[out:json];
-                    (node["amenity"="hospital"](around:2000,${lat},${lng});
-                    node["amenity"="clinic"](around:2000,${lat},${lng});
-                    node["healthcare"="hospital"](around:2000,${lat},${lng}););
-                    out body;`,
+                    (
+                        node["amenity"="hospital"](around:3000,${lat},${lng});
+                        node["amenity"="clinic"](around:3000,${lat},${lng});
+                        node["healthcare"="hospital"](around:3000,${lat},${lng});
+                        way["amenity"="hospital"](around:3000,${lat},${lng});
+                    );
+                    out center;`,
                     'hospital'
                 );
-                
+                console.log(`Found ${hospitalPlaces.length} hospitals/clinics`);
+
+                // Search for pharmacies
+                console.log("Searching for pharmacies...");
+                const pharmacyPlaces = await searchOverpass(
+                    `[out:json];
+                    (
+                        node["amenity"="pharmacy"](around:2000,${lat},${lng});
+                        node["healthcare"="pharmacy"](around:2000,${lat},${lng});
+                        way["amenity"="pharmacy"](around:2000,${lat},${lng});
+                    );
+                    out center;`,
+                    'pharmacy'
+                );
+                console.log(`Found ${pharmacyPlaces.length} pharmacies`);
+
                 // Search for commercial places
+                console.log("Searching for commercial places...");
                 const commercialPlaces = await searchOverpass(
                     `[out:json];
-                    (node["shop"](around:1000,${lat},${lng});
-                    node["amenity"="fast_food"](around:1000,${lat},${lng});
-                    node["amenity"="cafe"](around:1000,${lat},${lng}););
-                    out body;`,
+                    (
+                        node["shop"="convenience"](around:1500,${lat},${lng});
+                        node["shop"="supermarket"](around:1500,${lat},${lng});
+                        node["amenity"="fast_food"](around:1500,${lat},${lng});
+                        node["amenity"="cafe"](around:1500,${lat},${lng});
+                        node["opening_hours"~"24/7"](around:1500,${lat},${lng});
+                    );
+                    out center;`,
                     'commercial'
                 );
-                
-                // Combine results
+                console.log(`Found ${commercialPlaces.length} commercial places`);
+
+                // Combine all results
                 allRealPlaces = [
                     ...policePlaces,
-                    ...pharmacyPlaces,
                     ...hospitalPlaces,
+                    ...pharmacyPlaces,
                     ...commercialPlaces
                 ];
-                
-                // Calculate distances
+
+                console.log(`Total places found: ${allRealPlaces.length}`);
+
+                // Calculate distances and walking times
                 allRealPlaces.forEach(place => {
                     place.distance = calculateDistance(
                         userLocation[0], userLocation[1],
                         place.lat, place.lon
                     );
-                    place.walkingTime = Math.round((place.distance / 80) * 60);
+                    place.walkingTime = Math.round((place.distance / 4000) * 60);
+
+                    // Ensure name and address
+                    if (!place.name || place.name === 'Unknown Place') {
+                        place.name = `${place.type.charAt(0).toUpperCase() + place.type.slice(1)} Facility`;
+                    }
                 });
-                
+
+                // Sort by distance
                 allRealPlaces.sort((a, b) => a.distance - b.distance);
-                
+
                 // Update UI
                 updateUIElements();
-                updateStatus(`✅ Found ${allRealPlaces.length} safe places`);
+                updateStatus(`✅ Found ${allRealPlaces.length} safe places nearby`);
                 showLoading(false);
-                
+
             } catch (error) {
                 console.error("Search error:", error);
-                updateStatus("❌ Search failed");
+                updateStatus("❌ Search failed, showing sample data");
                 showSampleData();
                 showLoading(false);
             }
         }
-        
+
         async function searchOverpass(query, type) {
             try {
-                const response = await fetch(`${OVERPASS_API}?data=${encodeURIComponent(query)}`);
+                const response = await fetch(`${OVERPASS_API}?data=${encodeURIComponent(query)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
-                
+
                 return data.elements.map(element => {
+                    // Get coordinates from element
+                    let lat, lon;
+                    if (element.type === 'node') {
+                        lat = element.lat;
+                        lon = element.lon;
+                    } else if (element.center) {
+                        lat = element.center.lat;
+                        lon = element.center.lon;
+                    } else {
+                        return null;
+                    }
+
+                    // Get name
                     let name = 'Unknown Place';
                     if (element.tags) {
-                        name = element.tags.name || 
-                               element.tags['name:en'] || 
-                               element.tags.brand || 
-                               type.charAt(0).toUpperCase() + type.slice(1);
+                        name = element.tags.name ||
+                            element.tags['name:en'] ||
+                            element.tags.brand ||
+                            element.tags.operator ||
+                            `${type.charAt(0).toUpperCase() + type.slice(1)} Facility`;
                     }
-                    
-                    const address = element.tags?.['addr:street'] || 
-                                   element.tags?.['addr:full'] || 
-                                   'Address not available';
-                    
+
+                    // Get address
+                    const address = element.tags?.['addr:street'] ||
+                        element.tags?.['addr:full'] ||
+                        element.tags?.['addr:city'] ||
+                        'Address not available';
+
+                    // Get phone
+                    const phone = element.tags?.['phone'] ||
+                        element.tags?.['contact:phone'] ||
+                        (type === 'police' ? '100' :
+                            type === 'hospital' ? '102' : null);
+
                     return {
                         type: type,
                         name: name,
-                        lat: element.lat,
-                        lon: element.lon,
+                        lat: lat,
+                        lon: lon,
                         address: address,
                         tags: element.tags || {},
+                        phone: phone,
                         id: element.id
                     };
-                });
+                }).filter(place => place !== null);
             } catch (error) {
-                console.error(`Error: ${type}`, error);
+                console.error(`Error searching for ${type}:`, error);
                 return [];
             }
         }
-        
+
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 1000;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c * 1000; // Distance in meters
         }
-        
+
         // ==================== UI UPDATES ====================
         function updateUIElements() {
             updateFilterButtons();
@@ -1079,18 +1491,18 @@
             updateQuickActions();
             updateMapMarkers();
         }
-        
+
         function updateFilterButtons() {
             const container = document.getElementById('filterButtons');
             const filters = [
                 { id: 'all', label: 'All Places', icon: 'fas fa-layer-group' },
                 { id: 'police', label: 'Police', icon: 'fas fa-shield-alt' },
-                { id: 'pharmacy', label: 'Pharmacy', icon: 'fas fa-pills' },
                 { id: 'hospital', label: 'Hospital', icon: 'fas fa-hospital' },
-                { id: 'commercial', label: '24x7', icon: 'fas fa-store' },
+                { id: 'pharmacy', label: 'Pharmacy', icon: 'fas fa-pills' },
+                { id: 'commercial', label: '24/7 Stores', icon: 'fas fa-store' },
                 { id: 'refresh', label: 'Refresh', icon: 'fas fa-sync-alt' }
             ];
-            
+
             container.innerHTML = filters.map(filter => `
                 <button class="filter-btn ${filter.id === currentFilter ? 'active' : ''}" 
                         onclick="filterPlaces('${filter.id}')">
@@ -1098,512 +1510,607 @@
                 </button>
             `).join('');
         }
-        
+
         function updatePlacesDisplay() {
             const container = document.getElementById('placesContainer');
-            
+
             let filteredPlaces = allRealPlaces;
             if (currentFilter !== 'all' && currentFilter !== 'refresh') {
                 filteredPlaces = allRealPlaces.filter(p => p.type === currentFilter);
             }
-            
+
             if (filteredPlaces.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: #666;">
-                        <i class="fas fa-search" style="font-size: 40px; margin-bottom: 15px; color: #ffa502;"></i>
-                        <h3 style="margin-bottom: 10px;">No places found</h3>
-                        <p>Try increasing search area</p>
+                    <div style="text-align: center; padding: 50px 20px; color: var(--text-secondary);">
+                        <i class="fas fa-search" style="font-size: 60px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.3;"></i>
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">No places found</h3>
+                        <p>Try increasing search radius or checking different location</p>
+                        <button onclick="findRealSafePlaces()" 
+                                style="margin-top: 25px; padding: 14px 28px; background: var(--primary-color); color: white; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 16px;">
+                            <i class="fas fa-sync-alt"></i> Search Again
+                        </button>
                     </div>
                 `;
                 return;
             }
-            
+
             const placesToShow = filteredPlaces.slice(0, 10);
-            
+
             container.innerHTML = placesToShow.map(place => {
-                const typeColors = {
-                    'police': 'var(--police-blue)',
-                    'pharmacy': 'var(--pharmacy-orange)',
-                    'hospital': 'var(--hospital-red)',
-                    'commercial': 'var(--commercial-teal)'
-                };
-                
                 const typeIcons = {
                     'police': 'fas fa-shield-alt',
-                    'pharmacy': 'fas fa-pills',
                     'hospital': 'fas fa-hospital',
+                    'pharmacy': 'fas fa-pills',
                     'commercial': 'fas fa-store'
                 };
-                
+
                 const typeLabels = {
-                    'police': 'Police',
+                    'police': 'Police Station',
+                    'hospital': 'Hospital/Clinic',
                     'pharmacy': 'Pharmacy',
-                    'hospital': 'Hospital',
-                    'commercial': '24x7'
+                    'commercial': '24/7 Store'
                 };
-                
+
                 return `
                     <div class="place-card ${place.type}" 
                          onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})"
                          data-place-id="${place.id}">
                         <div class="place-header">
                             <div class="place-name">
-                                <i class="${typeIcons[place.type]}" 
-                                   style="color: ${typeColors[place.type]}; margin-right: 8px;"></i>
+                                <div class="place-type-icon">
+                                    <i class="${typeIcons[place.type]}"></i>
+                                </div>
                                 ${place.name}
                             </div>
                             <div class="place-distance">${Math.round(place.distance)}m</div>
                         </div>
-                        <div class="place-address">${place.address}</div>
+                        <div class="place-address">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${place.address}
+                        </div>
                         <div class="place-meta">
                             <span class="place-type type-${place.type}">${typeLabels[place.type]}</span>
-                            <span class="place-time">${place.walkingTime} min walk</span>
+                            <span class="place-time">
+                                <i class="fas fa-walking"></i>
+                                ${place.walkingTime} min
+                            </span>
                         </div>
-                        ${place.tags.phone ? `
-                            <div style="margin-top: 10px;">
-                                <button onclick="callNumber('${place.tags.phone}'); event.stopPropagation();" 
-                                        style="padding: 6px 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #3742fa;">
+                        <div class="place-actions">
+                            ${place.phone ? `
+                                <button class="place-action-btn call" onclick="callNumber('${place.phone}'); event.stopPropagation();">
                                     <i class="fas fa-phone"></i> Call
                                 </button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                            <button class="place-action-btn navigate" onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')}); event.stopPropagation();">
+                                <i class="fas fa-directions"></i> Navigate
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
-        
+
         function updateQuickActions() {
             const container = document.getElementById('quickActions');
-            
+
             const closestPolice = allRealPlaces.filter(p => p.type === 'police')[0];
-            const closestPharmacy = allRealPlaces.filter(p => p.type === 'pharmacy')[0];
             const closestHospital = allRealPlaces.filter(p => p.type === 'hospital')[0];
-            const closestCommercial = allRealPlaces.filter(p => p.type === 'commercial')[0];
-            
+            const closestPharmacy = allRealPlaces.filter(p => p.type === 'pharmacy')[0];
+
             container.innerHTML = `
-                <div class="action-btn police" onclick="${closestPolice ? `navigateToPlace(${JSON.stringify(closestPolice)})` : 'alert(\'No police found\')'}">
-                    <div class="icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="action-btn police" onclick="${closestPolice ? `navigateToPlace(${JSON.stringify(closestPolice)})` : 'alert(\'No police station found nearby\')'}">
+                    <div class="icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
                     <div class="label">NEAREST POLICE</div>
-                    <small>${closestPolice ? Math.round(closestPolice.distance) + 'm' : 'Not found'}</small>
+                    <small>${closestPolice ? Math.round(closestPolice.distance) + 'm away' : 'Not found'}</small>
                 </div>
                 
-                <div class="action-btn" onclick="${closestHospital ? `navigateToPlace(${JSON.stringify(closestHospital)})` : 'alert(\'No hospital found\')'}">
-                    <div class="icon"><i class="fas fa-hospital"></i></div>
+                <div class="action-btn hospital" onclick="${closestHospital ? `navigateToPlace(${JSON.stringify(closestHospital)})` : 'alert(\'No hospital found nearby\')'}">
+                    <div class="icon">
+                        <i class="fas fa-hospital"></i>
+                    </div>
                     <div class="label">NEAREST HOSPITAL</div>
-                    <small>${closestHospital ? Math.round(closestHospital.distance) + 'm' : 'Not found'}</small>
+                    <small>${closestHospital ? Math.round(closestHospital.distance) + 'm away' : 'Not found'}</small>
                 </div>
                 
-                <div class="action-btn primary" onclick="triggerEmergencySOS()">
-                    <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="action-btn emergency-btn" onclick="triggerEmergencySOS()">
+                    <div class="icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
                     <div class="label">EMERGENCY SOS</div>
                     <small>Immediate help</small>
                 </div>
                 
-                <div class="action-btn" onclick="shareMyLocation()">
-                    <div class="icon"><i class="fas fa-share-alt"></i></div>
-                    <div class="label">SHARE LOCATION</div>
-                    <small>With trusted contacts</small>
+                <div class="action-btn pharmacy" onclick="${closestPharmacy ? `navigateToPlace(${JSON.stringify(closestPharmacy)})` : 'alert(\'No pharmacy found nearby\')'}">
+                    <div class="icon">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div class="label">NEAREST PHARMACY</div>
+                    <small>${closestPharmacy ? Math.round(closestPharmacy.distance) + 'm away' : 'Not found'}</small>
                 </div>
             `;
         }
-        
+
+        function goHome() {
+            window.location.href = './index.html';
+        }
+
         function updateMapMarkers() {
             // Clear existing markers
             currentMarkers.forEach(marker => map.removeLayer(marker));
             currentMarkers = [];
-            
+
             // Add user marker
             if (userLocation) {
                 const userMarker = L.circleMarker(userLocation, {
-                    color: '#2ed573',
-                    fillColor: '#2ed573',
-                    fillOpacity: 0.8,
-                    radius: 8,
-                    weight: 3
+                    color: '#00C896',
+                    fillColor: '#00C896',
+                    fillOpacity: 0.9,
+                    radius: 12,
+                    weight: 4
                 }).addTo(map);
-                
-                userMarker.bindPopup("<strong>📍 You are here</strong>");
+
+                userMarker.bindPopup("<strong>📍 Your Location</strong><br>You are here");
                 currentMarkers.push(userMarker);
             }
-            
-            // Add place markers
+
+            // Add place markers with custom icons
             allRealPlaces.forEach(place => {
                 const iconColors = {
-                    'police': 'var(--police-blue)',
-                    'pharmacy': 'var(--pharmacy-orange)',
-                    'hospital': 'var(--hospital-red)',
-                    'commercial': 'var(--commercial-teal)'
+                    'police': '#4A6FFF',
+                    'hospital': '#FF6B8B',
+                    'pharmacy': '#00C896',
+                    'commercial': '#FFA726'
                 };
-                
+
                 const iconClasses = {
                     'police': 'fas fa-shield-alt',
-                    'pharmacy': 'fas fa-pills',
                     'hospital': 'fas fa-hospital',
+                    'pharmacy': 'fas fa-pills',
                     'commercial': 'fas fa-store'
                 };
-                
+
                 const marker = L.marker([place.lat, place.lon], {
                     icon: L.divIcon({
                         className: 'custom-marker',
                         html: `
                             <div style="
-                                background: white;
-                                width: 40px;
-                                height: 40px;
+                                background: ${iconColors[place.type]};
+                                width: 52px;
+                                height: 52px;
                                 border-radius: 50%;
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                border: 3px solid ${iconColors[place.type]};
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                                border: 3px solid white;
+                                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
                             ">
                                 <i class="${iconClasses[place.type]}" 
-                                   style="color: ${iconColors[place.type]}; font-size: 18px;"></i>
+                                   style="color: white; font-size: 22px;"></i>
                             </div>
                         `,
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 40]
+                        iconSize: [52, 52],
+                        iconAnchor: [26, 52]
                     })
                 }).addTo(map);
-                
+
                 marker.bindPopup(`
-                    <div style="min-width: 200px;">
-                        <h4 style="margin: 0 0 8px 0;">${place.name}</h4>
-                        <p style="margin: 4px 0; font-size: 13px; color: #666;">${place.address}</p>
-                        <p style="margin: 4px 0;"><strong>${Math.round(place.distance)}m away</strong></p>
-                        <p style="margin: 4px 0;">${place.walkingTime} min walk</p>
-                        ${place.tags.phone ? `
-                            <button onclick="callNumber('${place.tags.phone}')" 
-                                    style="margin-top: 10px; padding: 8px 16px; background: #3742fa; color: white; border: none; border-radius: 6px; width: 100%;">
-                                <i class="fas fa-phone"></i> Call Now
+                    <div style="min-width: 250px; color: #333; font-family: -apple-system, sans-serif;">
+                        <h4 style="margin: 0 0 10px 0; color: ${iconColors[place.type]}; font-size: 18px;">${place.name}</h4>
+                        <p style="margin: 5px 0; font-size: 14px; color: #666;">${place.address}</p>
+                        <p style="margin: 5px 0; font-weight: 600;">${Math.round(place.distance)}m away</p>
+                        <p style="margin: 5px 0; color: #00C896; font-weight: 600;">${place.walkingTime} minute walk</p>
+                        ${place.phone ? `
+                            <button onclick="callNumber('${place.phone}')" 
+                                    style="margin-top: 12px; padding: 12px; background: ${iconColors[place.type]}; color: white; border: none; border-radius: 10px; width: 48%; cursor: pointer; font-weight: 600; font-size: 14px;">
+                                <i class="fas fa-phone"></i> Call
                             </button>
                         ` : ''}
                         <button onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})" 
-                                style="margin-top: 8px; padding: 8px 16px; background: #2ed573; color: white; border: none; border-radius: 6px; width: 100%;">
-                            <i class="fas fa-directions"></i> Get Directions
+                                style="margin-top: 12px; padding: 12px; background: #00C896; color: white; border: none; border-radius: 10px; width: ${place.phone ? '48%' : '100%'}; cursor: pointer; font-weight: 600; font-size: 14px;">
+                            <i class="fas fa-directions"></i> Directions
                         </button>
                     </div>
                 `);
-                
+
                 currentMarkers.push(marker);
             });
         }
-        
+
         // ==================== NAVIGATION & VIEWS ====================
         function toggleSidePanel() {
             const panel = document.getElementById('sidePanel');
             sidePanelOpen = !sidePanelOpen;
             panel.classList.toggle('active', sidePanelOpen);
-            
+
             if (sidePanelOpen) {
                 updateFilterButtons();
                 updatePlacesDisplay();
+                document.getElementById('searchInput').value = '';
+                updateStatus("👆 Browse safe places");
             }
         }
-        
+
         function showMapView() {
             activeView = 'map';
-            updateNavButtons();
-            toggleSidePanel();
+            updateNavButtons('map');
             if (sidePanelOpen) toggleSidePanel();
+            updateStatus("📍 Viewing map");
         }
-        
+
         function showPlacesView() {
             activeView = 'places';
-            updateNavButtons();
+            updateNavButtons('places');
             if (!sidePanelOpen) toggleSidePanel();
         }
-        
-        function showEmergencyView() {
-            activeView = 'emergency';
-            updateNavButtons();
-            alert("Emergency features:\n\n• SOS button for immediate help\n• Share location with trusted contacts\n• Nearest safe places navigation");
+
+        function showSafetyView() {
+            activeView = 'safety';
+            updateNavButtons('safety');
+            alert("🔒 Safety Features:\n\n• Emergency SOS with countdown\n• Share live location\n• Find safe routes\n• Trusted contacts\n• Safety tips & guidelines");
         }
-        
-        function updateNavButtons() {
+
+        function updateNavButtons(view) {
             document.querySelectorAll('.nav-item').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+
+            if (view === 'map') {
+                document.querySelector('.nav-item:nth-child(1)').classList.add('active');
+            } else if (view === 'places') {
+                document.querySelector('.nav-item:nth-child(2)').classList.add('active');
+            } else if (view === 'safety') {
+                document.querySelector('.nav-item:nth-child(3)').classList.add('active');
+            }
         }
-        
+
         function focusOnUser() {
             if (userLocation) {
                 map.setView(userLocation, 16);
                 updateStatus("📍 Centered on your location");
             }
         }
-        
+
         function toggleLegend() {
             document.getElementById('mapLegend').classList.toggle('active');
         }
-        
+
         // ==================== PLACE NAVIGATION ====================
         function navigateToPlace(place) {
             if (!place || !userLocation) return;
-            
+
             updateStatus(`🗺️ Navigating to ${place.name}...`);
-            
+
             // Clear previous routes
             map.eachLayer(layer => {
                 if (layer instanceof L.Polyline) {
                     map.removeLayer(layer);
                 }
             });
-            
-            // Draw route with animation
+
+            // Draw animated route
             const route = L.polyline([userLocation, [place.lat, place.lon]], {
                 color: getPlaceColor(place.type),
                 weight: 4,
-                opacity: 0.7,
+                opacity: 0.8,
                 lineJoin: 'round',
+                dashArray: '10, 10',
                 className: 'safe-route'
             }).addTo(map);
-            
+
             // Open popup
-            map.openPopup(`
-                <div style="text-align:center; min-width: 250px;">
-                    <h4 style="margin: 0 0 10px 0;">${place.name}</h4>
-                    <p style="margin: 5px 0;"><strong>${Math.round(place.distance)}m away</strong></p>
-                    <p style="margin: 5px 0;">${place.walkingTime} minute walk</p>
-                    <button onclick="callNumber('${place.tags.phone || '100'}')" 
-                            style="margin: 10px 5px; padding: 10px; background: #3742fa; color: white; border: none; border-radius: 8px; width: 45%;">
-                        <i class="fas fa-phone"></i> Call
-                    </button>
+            const popupContent = `
+                <div style="text-align:center; min-width: 250px; color: #333; font-family: -apple-system, sans-serif;">
+                    <h4 style="margin: 0 0 10px 0; color: ${getPlaceColor(place.type)}; font-size: 18px;">${place.name}</h4>
+                    <p style="margin: 5px 0; font-weight: 600;">${Math.round(place.distance)}m away</p>
+                    <p style="margin: 5px 0; color: #00C896; font-weight: 600;">${place.walkingTime} minute walk</p>
+                    ${place.phone ? `
+                        <button onclick="callNumber('${place.phone}')" 
+                                style="margin: 10px 5px; padding: 12px; background: ${getPlaceColor(place.type)}; color: white; border: none; border-radius: 10px; width: 48%; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-phone"></i> Call
+                        </button>
+                    ` : ''}
                     <button onclick="sharePlace('${place.name}', ${place.lat}, ${place.lon})" 
-                            style="margin: 10px 5px; padding: 10px; background: #2ed573; color: white; border: none; border-radius: 8px; width: 45%;">
+                            style="margin: 10px 5px; padding: 12px; background: #00C896; color: white; border: none; border-radius: 10px; width: ${place.phone ? '48%' : '100%'}; cursor: pointer; font-weight: 600;">
                         <i class="fas fa-share"></i> Share
                     </button>
                 </div>
-            `, [place.lat, place.lon]);
-            
+            `;
+
+            map.closePopup();
+
+            L.popup()
+                .setLatLng([place.lat, place.lon])
+                .setContent(popupContent)
+                .openOn(map);
+
             // Fit bounds
             const bounds = L.latLngBounds([userLocation, [place.lat, place.lon]]);
-            map.fitBounds(bounds, { padding: [50, 50] });
-            
+            map.fitBounds(bounds, { padding: [60, 60] });
+
             // Vibrate on mobile
             if (navigator.vibrate) {
-                navigator.vibrate(100);
+                navigator.vibrate([100, 50, 100]);
             }
         }
-        
+
         function getPlaceColor(type) {
             const colors = {
-                'police': '#3742fa',
-                'pharmacy': '#ffa502',
-                'hospital': '#ff6b81',
-                'commercial': '#1e90ff'
+                'police': '#4A6FFF',
+                'hospital': '#FF6B8B',
+                'pharmacy': '#00C896',
+                'commercial': '#FFA726'
             };
-            return colors[type] || '#666';
+            return colors[type] || '#4A6FFF';
         }
-        
+
+        // ==================== SEARCH FUNCTIONALITY ====================
+        function searchPlaces(searchTerm = '') {
+            const term = searchTerm || document.getElementById('searchInput').value;
+
+            if (!term.trim()) {
+                updatePlacesDisplay();
+                return;
+            }
+
+            const searchLower = term.toLowerCase();
+            const filtered = allRealPlaces.filter(place =>
+                place.name.toLowerCase().includes(searchLower) ||
+                place.address.toLowerCase().includes(searchLower) ||
+                place.type.toLowerCase().includes(searchLower)
+            );
+
+            const container = document.getElementById('placesContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 50px 20px; color: var(--text-secondary);">
+                        <i class="fas fa-search" style="font-size: 60px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.3;"></i>
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">No matches found</h3>
+                        <p>Try searching for "police", "hospital", "pharmacy", or "store"</p>
+                    </div>
+                `;
+            } else {
+                // Temporarily display search results
+                const originalPlaces = [...allRealPlaces];
+                const originalFilter = currentFilter;
+
+                allRealPlaces = filtered;
+                currentFilter = 'all';
+                updatePlacesDisplay();
+
+                // Restore original data
+                allRealPlaces = originalPlaces;
+                currentFilter = originalFilter;
+            }
+        }
+
         // ==================== EMERGENCY FEATURES ====================
         function triggerEmergencySOS() {
             document.getElementById('emergencyModal').classList.add('active');
-            
+
             let countdown = 5;
             const countdownElement = document.getElementById('countdown');
-            
-            const interval = setInterval(() => {
+            countdownElement.textContent = countdown;
+
+            // Clear any existing interval
+            if (emergencyCountdownInterval) {
+                clearInterval(emergencyCountdownInterval);
+            }
+
+            emergencyCountdownInterval = setInterval(() => {
                 countdown--;
                 countdownElement.textContent = countdown;
-                
+
                 if (countdown <= 0) {
-                    clearInterval(interval);
+                    clearInterval(emergencyCountdownInterval);
+                    emergencyCountdownInterval = null;
                     activateEmergency();
                 }
             }, 1000);
         }
-        
+
         function cancelEmergency() {
+            if (emergencyCountdownInterval) {
+                clearInterval(emergencyCountdownInterval);
+                emergencyCountdownInterval = null;
+            }
             document.getElementById('emergencyModal').classList.remove('active');
-            updateStatus("Emergency cancelled");
+            updateStatus("Emergency cancelled • You're safe");
         }
-        
+
         function activateEmergency() {
             document.getElementById('emergencyModal').classList.remove('active');
-            
+
             // Call emergency numbers
-            callEmergency('100');
+            callEmergency('100'); // Police
             callEmergency('1091'); // Women's helpline India
-            
-            // Share location
+
+            // Share emergency location
             shareEmergencyLocation();
-            
-            // Navigate to closest place
+
+            // Navigate to closest safe place
             const closestPlace = allRealPlaces[0];
             if (closestPlace) {
                 setTimeout(() => navigateToPlace(closestPlace), 1000);
             }
-            
-            // Alert user
-            alert(`🚨 EMERGENCY SOS ACTIVATED!\n\n• Police notified (100)\n• Women's helpline called (1091)\n• Location shared with emergency contacts\n• Navigating to nearest safe place`);
-            
-            updateStatus("🚨 EMERGENCY - Help is on the way");
-            
-            // Continuous vibration
+
+            // Show emergency alert
+            showEmergencyAlert();
+
+            updateStatus("🚨 EMERGENCY • Help is on the way");
+
+            // Continuous vibration pattern
             if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200, 100, 200]);
+                navigator.vibrate([200, 100, 200, 100, 200, 100, 500]);
             }
         }
-        
+
+        function showEmergencyAlert() {
+            alert(`🚨 EMERGENCY SOS ACTIVATED!\n\n✅ Police notified (100)\n✅ Women's helpline alerted (1091)\n📍 Your location shared with emergency contacts\n🗺️ Navigating to nearest safe place\n\nStay on the line and follow instructions`);
+        }
+
         function callEmergency(number) {
             window.open(`tel:${number}`, '_blank');
         }
-        
+
         function callNumber(number) {
             window.open(`tel:${number}`, '_blank');
         }
-        
+
         function shareEmergencyLocation() {
             if (!userLocation) return;
-            
+
             const message = `🚨 EMERGENCY SOS! I need immediate help at: https://maps.google.com/?q=${userLocation[0]},${userLocation[1]}`;
-            
+
             if (navigator.share) {
                 navigator.share({
-                    title: 'EMERGENCY - Need Help',
-                    text: message
+                    title: 'EMERGENCY - Need Help Immediately',
+                    text: message,
+                    url: `https://maps.google.com/?q=${userLocation[0]},${userLocation[1]}`
+                }).catch(err => {
+                    navigator.clipboard.writeText(message);
                 });
             } else {
                 navigator.clipboard.writeText(message);
-                alert("Emergency location copied to clipboard!");
             }
         }
-        
+
         function shareMyLocation() {
             if (!userLocation) return;
-            
+
             const message = `📍 My current location: https://maps.google.com/?q=${userLocation[0]},${userLocation[1]}`;
-            
+
             if (navigator.share) {
                 navigator.share({
                     title: 'My Current Location',
                     text: message
+                }).catch(err => {
+                    navigator.clipboard.writeText(message);
+                    alert("Location copied to clipboard!");
                 });
             } else {
                 navigator.clipboard.writeText(message);
                 alert("Location copied to clipboard!");
             }
         }
-        
+
         function sharePlace(name, lat, lon) {
             const message = `📍 ${name} location: https://maps.google.com/?q=${lat},${lon}`;
-            
+
             if (navigator.share) {
                 navigator.share({
                     title: name,
                     text: message
+                }).catch(err => {
+                    navigator.clipboard.writeText(message);
+                    alert("Location copied!");
                 });
             } else {
                 navigator.clipboard.writeText(message);
                 alert("Location copied!");
             }
         }
-        
+
         // ==================== UTILITY FUNCTIONS ====================
         function updateStatus(message) {
             document.getElementById('statusText').textContent = message;
         }
-        
+
         function showLoading(show) {
             document.getElementById('loadingScreen').classList.toggle('hidden', !show);
         }
-        
+
         function filterPlaces(type) {
             if (type === 'refresh') {
                 findRealSafePlaces();
                 return;
             }
-            
+
             currentFilter = type;
             updateFilterButtons();
             updatePlacesDisplay();
-            updateStatus(`Showing ${type === 'all' ? 'all' : type} places`);
+
+            const typeLabels = {
+                'all': 'All safe places',
+                'police': 'Police stations',
+                'hospital': 'Hospitals & clinics',
+                'pharmacy': 'Pharmacies',
+                'commercial': '24/7 stores'
+            };
+
+            updateStatus(`📌 Showing ${typeLabels[type] || type}`);
         }
-        
-        // ==================== FALLBACK DATA ====================
+
+        // ==================== FALLBACK SAMPLE DATA ====================
         function showSampleData() {
             allRealPlaces = [
                 {
                     type: 'police',
-                    name: 'Lalbazar Police HQ',
+                    name: 'Lalbazar Police Headquarters',
                     lat: 22.5736,
                     lon: 88.3521,
-                    distance: 800,
-                    walkingTime: 10,
+                    distance: 850,
+                    walkingTime: 11,
                     address: '18, Lalbazar Street, Kolkata',
-                    tags: { phone: '033-2214-3000' }
+                    phone: '033-2214-3000'
                 },
                 {
                     type: 'hospital',
                     name: 'SSKM Hospital',
                     lat: 22.5535,
                     lon: 88.3501,
-                    distance: 1200,
-                    walkingTime: 15,
+                    distance: 1250,
+                    walkingTime: 16,
                     address: 'Bhowanipore, Kolkata',
-                    tags: { phone: '033-2223-5181' }
+                    phone: '033-2223-5181'
                 },
                 {
                     type: 'pharmacy',
                     name: 'Apollo Pharmacy',
                     lat: 22.5750,
                     lon: 88.3620,
-                    distance: 500,
-                    walkingTime: 6,
+                    distance: 520,
+                    walkingTime: 7,
                     address: 'Park Street, Kolkata',
-                    tags: { phone: '033-2283-5678' }
+                    phone: '033-2283-5678'
                 },
                 {
                     type: 'commercial',
-                    name: 'New Market Area',
+                    name: '24/7 Convenience Store',
                     lat: 22.5620,
                     lon: 88.3520,
-                    distance: 600,
+                    distance: 650,
                     walkingTime: 8,
                     address: 'Lindsay Street, Kolkata',
-                    tags: {}
+                    phone: null
+                },
+                {
+                    type: 'police',
+                    name: 'Park Street Police Station',
+                    lat: 22.5510,
+                    lon: 88.3510,
+                    distance: 1450,
+                    walkingTime: 18,
+                    address: 'Park Street, Kolkata',
+                    phone: '033-2229-4567'
+                },
+                {
+                    type: 'hospital',
+                    name: 'AMRI Hospital',
+                    lat: 22.5900,
+                    lon: 88.4200,
+                    distance: 2800,
+                    walkingTime: 35,
+                    address: 'Salt Lake, Kolkata',
+                    phone: '033-6655-0000'
                 }
             ];
-            
+
             updateUIElements();
-            updateStatus("Showing sample data");
+            updateStatus("📱 Showing sample data • Enable location for live results");
         }
-
-        // ==================== SEARCH FUNCTIONALITY ====================
-        document.getElementById('searchInput')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            
-            if (searchTerm.length < 2) {
-                updatePlacesDisplay();
-                return;
-            }
-            
-            const filtered = allRealPlaces.filter(place => 
-                place.name.toLowerCase().includes(searchTerm) ||
-                place.address.toLowerCase().includes(searchTerm) ||
-                place.type.toLowerCase().includes(searchTerm)
-            );
-            
-            const container = document.getElementById('placesContainer');
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: #666;">
-                        <i class="fas fa-search" style="font-size: 40px; margin-bottom: 15px; color: #ffa502;"></i>
-                        <h3 style="margin-bottom: 10px;">No matches found</h3>
-                        <p>Try a different search term</p>
-                    </div>
-                `;
-            } else {
-                // Temporarily display search results
-                const tempPlaces = allRealPlaces;
-                allRealPlaces = filtered;
-                updatePlacesDisplay();
-                allRealPlaces = tempPlaces;
-            }
-        });
-
     </script>
 </body>
+
 </html>

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trinetra AI - Voice Assistant</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -210,14 +212,29 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .message.user-message {
@@ -270,12 +287,26 @@
             animation: dotPulse 1.8s ease-in-out infinite;
         }
 
-        .thinking-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
-        .thinking-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+        .thinking-indicator .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-indicator .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
 
         @keyframes dotPulse {
-            0%, 100% { transform: translateY(0); opacity: 0.6; }
-            50% { transform: translateY(-4px); opacity: 1; }
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translateY(-4px);
+                opacity: 1;
+            }
         }
 
         /* Typing Area */
@@ -421,67 +452,67 @@
             body {
                 padding: 10px;
             }
-            
+
             .main-container {
                 margin-top: 10px;
             }
-            
+
             .header {
                 padding: 20px 15px;
             }
-            
+
             .title {
                 font-size: 2rem;
             }
-            
+
             .subtitle {
                 font-size: 1rem;
             }
-            
+
             .voice-status-bar {
                 padding: 12px;
                 gap: 10px;
             }
-            
+
             .voice-status-icon {
                 width: 35px;
                 height: 35px;
                 font-size: 1rem;
             }
-            
+
             .voice-status-text {
                 font-size: 0.9rem;
             }
-            
+
             .chat-list {
                 padding: 15px;
                 max-height: 400px;
             }
-            
+
             .message-content {
                 max-width: 85%;
             }
-            
+
             .typing-area {
                 padding: 15px;
             }
-            
+
             .typing-input {
                 padding: 12px 15px;
                 font-size: 0.95rem;
             }
-            
+
             #send-message-button,
             #voice-toggle-button {
                 width: 45px;
                 height: 45px;
                 font-size: 1.1rem;
             }
-            
+
             .welcome-title {
                 font-size: 1.8rem;
             }
-            
+
             .welcome-subtitle {
                 font-size: 1rem;
             }
@@ -491,26 +522,26 @@
             .title {
                 font-size: 1.8rem;
             }
-            
+
             .subtitle {
                 font-size: 0.95rem;
             }
-            
+
             .message-avatar {
                 width: 35px;
                 height: 35px;
             }
-            
+
             .voice-status-bar {
                 flex-direction: column;
                 gap: 8px;
                 text-align: center;
             }
-            
+
             .action-buttons {
                 gap: 10px;
             }
-            
+
             .action-buttons .icon {
                 width: 35px;
                 height: 35px;
@@ -550,7 +581,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-text {
@@ -581,20 +614,50 @@
             animation: voiceWave 1.2s ease-in-out infinite;
         }
 
-        .voice-wave span:nth-child(2) { animation-delay: 0.1s; }
-        .voice-wave span:nth-child(3) { animation-delay: 0.2s; }
-        .voice-wave span:nth-child(4) { animation-delay: 0.3s; }
-        .voice-wave span:nth-child(5) { animation-delay: 0.4s; }
-        .voice-wave span:nth-child(6) { animation-delay: 0.5s; }
-        .voice-wave span:nth-child(7) { animation-delay: 0.6s; }
-        .voice-wave span:nth-child(8) { animation-delay: 0.7s; }
+        .voice-wave span:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .voice-wave span:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .voice-wave span:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .voice-wave span:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        .voice-wave span:nth-child(6) {
+            animation-delay: 0.5s;
+        }
+
+        .voice-wave span:nth-child(7) {
+            animation-delay: 0.6s;
+        }
+
+        .voice-wave span:nth-child(8) {
+            animation-delay: 0.7s;
+        }
 
         @keyframes voiceWave {
-            0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
-            50% { transform: scaleY(1.5); opacity: 1; }
+
+            0%,
+            100% {
+                transform: scaleY(0.5);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scaleY(1.5);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Loading Screen -->
     <div class="loading-screen" id="loading-screen">
@@ -605,8 +668,9 @@
     <!-- Welcome Message -->
     <div class="welcome-message">
         <h1 class="welcome-title">TRINETRA AI</h1>
-        <p class="welcome-subtitle">Start speaking - I'm listening automatically! You can also type below. Say "hello" to begin.</p>
-        
+        <p class="welcome-subtitle">Start speaking - I'm listening automatically! You can also type below. Say "hello"
+            to begin.</p>
+
         <!-- Voice Status Bar -->
         <div class="voice-status-bar" id="voice-status-bar">
             <div class="voice-status-icon" id="voice-status-icon">
@@ -637,19 +701,15 @@
     <div class="main-container">
         <!-- Chat List -->
         <div class="chat-list" id="chat-list"></div>
-        
+
         <!-- Typing Area -->
         <div class="typing-area">
             <form class="typing-form" id="typing-form">
                 <div class="input-wrapper">
-                    <textarea 
-                        class="typing-input" 
-                        id="typing-input" 
-                        placeholder="Type your message here or just start speaking..." 
-                        rows="1"
-                        required
-                    ></textarea>
-                    <button type="button" id="voice-toggle-button" class="icon material-symbols-rounded" title="Toggle voice input">
+                    <textarea class="typing-input" id="typing-input"
+                        placeholder="Type your message here or just start speaking..." rows="1" required></textarea>
+                    <button type="button" id="voice-toggle-button" class="icon material-symbols-rounded"
+                        title="Toggle voice input">
                         mic
                     </button>
                     <button type="submit" id="send-message-button" class="icon material-symbols-rounded">
@@ -693,8 +753,7 @@
         const typingForm = document.getElementById('typing-form');
 
         // API Configuration
-        const API_KEY = "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";
-        const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+
 
         // Voice Recognition
         let recognition = null;
@@ -712,12 +771,12 @@
 
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 recognition = new SpeechRecognition();
-                
+
                 recognition.continuous = true; // Keep listening continuously
                 recognition.interimResults = true; // Show interim results
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
-                
+
                 recognition.onstart = () => {
                     console.log('Voice recognition started');
                     isListening = true;
@@ -728,11 +787,11 @@
                     typingInput.classList.add('recording');
                     voiceToggleButton.classList.add('listening');
                 };
-                
+
                 recognition.onresult = (event) => {
                     let finalTranscript = '';
                     let interimTranscript = '';
-                    
+
                     for (let i = event.resultIndex; i < event.results.length; i++) {
                         const transcript = event.results[i][0].transcript;
                         if (event.results[i].isFinal) {
@@ -741,13 +800,13 @@
                             interimTranscript += transcript;
                         }
                     }
-                    
+
                     // Update transcript display
                     if (finalTranscript) {
                         transcriptText.textContent = finalTranscript;
                         typingInput.value = finalTranscript;
                         transcriptContainer.classList.add('visible');
-                        
+
                         // Auto-send after 1 second of silence
                         clearTimeout(window.autoSendTimeout);
                         window.autoSendTimeout = setTimeout(() => {
@@ -760,10 +819,10 @@
                         transcriptContainer.classList.add('visible');
                     }
                 };
-                
+
                 recognition.onerror = (event) => {
                     console.error('Speech recognition error:', event.error);
-                    
+
                     if (event.error === 'not-allowed') {
                         voiceStatusText.textContent = "Microphone access denied";
                         voiceStatusText.style.color = "var(--error-color)";
@@ -773,20 +832,20 @@
                     } else {
                         voiceStatusText.textContent = `Error: ${event.error}`;
                     }
-                    
+
                     voiceStatusText.classList.remove('listening');
                     voiceStatusIcon.classList.remove('listening');
                     voiceWave.classList.remove('active');
                     typingInput.classList.remove('recording');
                     voiceToggleButton.classList.remove('listening');
                     isListening = false;
-                    
+
                     // Try to restart if it was an expected error
                     if (event.error !== 'aborted' && event.error !== 'not-allowed') {
                         setTimeout(startListening, 1000);
                     }
                 };
-                
+
                 recognition.onend = () => {
                     console.log('Voice recognition ended');
                     isListening = false;
@@ -795,7 +854,7 @@
                     voiceWave.classList.remove('active');
                     typingInput.classList.remove('recording');
                     voiceToggleButton.classList.remove('listening');
-                    
+
                     // Restart listening if auto-listen is enabled
                     if (autoListenEnabled && recognition) {
                         setTimeout(startListening, 500);
@@ -806,22 +865,22 @@
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately
-                    
+
                     // Start listening automatically
                     startListening();
-                    
+
                     // Hide loading screen
                     setTimeout(() => {
                         loadingScreen.classList.add('hidden');
                     }, 1000);
-                    
+
                 } catch (err) {
                     console.error('Microphone permission denied:', err);
                     voiceStatusText.textContent = "Please allow microphone access to use voice features";
                     voiceStatusText.style.color = "var(--warning-color)";
                     loadingScreen.classList.add('hidden');
                 }
-                
+
             } catch (error) {
                 console.error('Failed to initialize speech recognition:', error);
                 voiceStatusText.textContent = "Voice features unavailable in this browser";
@@ -865,7 +924,7 @@
                 initSpeechRecognition();
                 return;
             }
-            
+
             if (isListening) {
                 autoListenEnabled = false;
                 stopListening();
@@ -880,11 +939,11 @@
         function addMessageToChat(content, type) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', type);
-            
+
             // Create avatar
             const avatar = document.createElement('div');
             avatar.classList.add('message-avatar');
-            
+
             if (type === 'user-message') {
                 avatar.innerHTML = '👤';
                 avatar.style.backgroundColor = 'var(--primary-color)';
@@ -902,17 +961,17 @@
                 avatar.style.justifyContent = 'center';
                 avatar.style.fontSize = '1.2rem';
             }
-            
+
             // Create content
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
-            
+
             const textDiv = document.createElement('div');
             textDiv.classList.add('message-text');
             textDiv.textContent = content;
-            
+
             contentDiv.appendChild(textDiv);
-            
+
             // Assemble message
             if (type === 'user-message') {
                 messageDiv.appendChild(contentDiv);
@@ -921,7 +980,7 @@
                 messageDiv.appendChild(avatar);
                 messageDiv.appendChild(contentDiv);
             }
-            
+
             chatList.appendChild(messageDiv);
             chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
         }
@@ -930,7 +989,7 @@
         function addThinkingIndicator() {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', 'bot-message');
-            
+
             const avatar = document.createElement('div');
             avatar.classList.add('message-avatar');
             avatar.innerHTML = '🤖';
@@ -940,26 +999,26 @@
             avatar.style.alignItems = 'center';
             avatar.style.justifyContent = 'center';
             avatar.style.fontSize = '1.2rem';
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
-            
+
             const thinkingDiv = document.createElement('div');
             thinkingDiv.classList.add('thinking-indicator');
-            
+
             for (let i = 0; i < 3; i++) {
                 const dot = document.createElement('div');
                 dot.classList.add('dot');
                 thinkingDiv.appendChild(dot);
             }
-            
+
             contentDiv.appendChild(thinkingDiv);
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(contentDiv);
-            
+
             chatList.appendChild(messageDiv);
             chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
-            
+
             return messageDiv;
         }
 
@@ -968,69 +1027,63 @@
             // Clear transcript and input
             transcriptText.textContent = 'Processing...';
             typingInput.value = '';
-            
+
             // Hide transcript after a delay
             setTimeout(() => {
                 transcriptContainer.classList.remove('visible');
             }, 1000);
-            
+
             // Add user message to chat
             addMessageToChat(message, 'user-message');
-            
+
             // Add to chat history
             chatHistory.push({
                 role: "user",
                 content: message
             });
-            
+
             // Show thinking indicator
             const thinkingDiv = addThinkingIndicator();
-            
+
             try {
                 // Prepare API request
-                const requestOptions = {
+                const response = await fetch("/api/openai", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${API_KEY}`,
-                        "HTTP-Referer": window.location.origin,
-                        "X-Title": "Trinetra Voice AI"
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "openai/gpt-3.5-turbo",
                         messages: chatHistory,
                         max_tokens: 1000,
-                        temperature: 0.7,
-                    }),
-                };
-                
-                // Fetch response from AI
-                const response = await fetch(API_URL, requestOptions);
+                        temperature: 0.7
+                    })
+                });
+
                 const data = await response.json();
-                
+
                 if (!response.ok) {
                     throw new Error(data.error?.message || `HTTP ${response.status}`);
                 }
-                
-                const aiResponse = data.choices[0]?.message?.content?.trim() || 
+
+                const aiResponse = data.choices[0]?.message?.content?.trim() ||
                     "Sorry, I couldn't generate a response.";
-                
+
                 // Remove thinking indicator and add AI response
                 chatList.removeChild(thinkingDiv);
                 addMessageToChat(aiResponse, 'bot-message');
-                
+
                 // Add to chat history
                 chatHistory.push({
                     role: "assistant",
                     content: aiResponse
                 });
-                
+
             } catch (error) {
                 console.error("API Error:", error);
                 chatList.removeChild(thinkingDiv);
                 addMessageToChat(`Sorry, I encountered an error: ${error.message}`, 'bot-message');
             }
-            
+
             // Resume listening after AI response
             if (autoListenEnabled && recognition) {
                 setTimeout(() => {
@@ -1060,7 +1113,7 @@
                     sendMessageToAI(message);
                 }
             }
-            
+
             // Auto-resize textarea
             setTimeout(() => {
                 typingInput.style.height = 'auto';
@@ -1076,10 +1129,10 @@
         // Theme toggle
         themeToggleButton.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
-            themeToggleButton.textContent = document.body.classList.contains('dark-mode') 
-                ? 'dark_mode' 
+            themeToggleButton.textContent = document.body.classList.contains('dark-mode')
+                ? 'dark_mode'
                 : 'light_mode';
-            
+
             // Save preference
             localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
         });
@@ -1091,7 +1144,7 @@
                 chatHistory = [];
                 transcriptText.textContent = "Waiting for voice input...";
                 transcriptContainer.classList.remove('visible');
-                
+
                 // Add welcome message back
                 setTimeout(() => {
                     addMessageToChat("👋 Hello! I'm Trinetra AI. I'm listening automatically - just start speaking! You can also type messages below.", 'bot-message');
@@ -1106,7 +1159,7 @@
         // Help button
         helpButton.addEventListener('click', () => {
             const helpMessage = "🎤 **Voice Commands:**\n• Just start speaking - I'll listen automatically\n• Say 'stop listening' to pause voice input\n• Say 'start listening' to resume\n• Click the mic button to toggle voice\n\n✏️ **Text Input:**\n• Type in the box below\n• Press Enter to send\n• Shift+Enter for new line\n\n⚙️ **Other Features:**\n• Toggle dark/light mode with the sun/moon icon\n• Clear chat with the trash icon";
-            
+
             addMessageToChat(helpMessage, 'bot-message');
             chatHistory.push({
                 role: "assistant",
@@ -1122,7 +1175,7 @@
                 document.body.classList.add('dark-mode');
                 themeToggleButton.textContent = 'dark_mode';
             }
-            
+
             // Add welcome message
             setTimeout(() => {
                 addMessageToChat("👋 Hello! I'm Trinetra AI. I'm listening automatically - just start speaking! You can also type messages below.", 'bot-message');
@@ -1131,7 +1184,7 @@
                     content: "Hello! I'm Trinetra AI. I'm listening automatically - just start speaking! You can also type messages below."
                 });
             }, 500);
-            
+
             // Initialize speech recognition
             initSpeechRecognition();
         });
@@ -1139,7 +1192,7 @@
         // Voice command handling
         function handleVoiceCommand(command) {
             const cmd = command.toLowerCase().trim();
-            
+
             if (cmd.includes('stop listening') || cmd.includes('pause listening')) {
                 autoListenEnabled = false;
                 stopListening();
@@ -1170,12 +1223,12 @@
                 e.preventDefault();
                 toggleVoiceListening();
             }
-            
+
             // Escape to stop listening
             if (e.key === 'Escape' && isListening) {
                 stopListening();
             }
-            
+
             // Focus on input when / is pressed
             if (e.key === '/' && e.target !== typingInput) {
                 e.preventDefault();
@@ -1184,7 +1237,7 @@
         });
 
         // Auto-adjust textarea height
-        typingInput.addEventListener('input', function() {
+        typingInput.addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
@@ -1205,4 +1258,5 @@
         });
     </script>
 </body>
+
 </html>

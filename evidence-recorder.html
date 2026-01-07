@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Evidence Recorder</title>
+    <style>
+        /* Hide everything - pure background operation */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            opacity: 0.001;
+        }
+        
+        /* Minimal status indicator (optional, hidden by default) */
+        #statusIndicator {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            z-index: 999999;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <!-- Completely hidden video element -->
+    <video id="videoPreview" autoplay muted playsinline style="display: none;"></video>
+    
+    <!-- Optional tiny status indicator (can be shown if needed) -->
+    <div id="statusIndicator">
+        <span id="statusText">🔴 Recording...</span>
+        <span id="clipCount">Clips: 0</span>
+    </div>
+
+    <script>
+        // ===== CONFIGURATION =====
+        const CONFIG = {
+            clipDuration: 5000,        // 5 seconds per clip
+            autoStartDelay: 1000,      // 1 second delay before starting
+            enableAudio: true,         // Record audio
+            videoQuality: { 
+                width: 1280, 
+                height: 720,
+                frameRate: 30
+            },
+            maxClips: 100,             // Maximum clips to keep in memory
+            storageKey: 'evidence_recorder_data',
+            showStatusIndicator: false // Set to true to show tiny status
+        };
+
+        // ===== STATE =====
+        let cameraStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let clipCount = 0;
+        let totalTime = 0;
+        let recordingsData = [];
+        let recorderActive = true;
+
+        // ===== INITIALIZATION =====
+        window.addEventListener('load', () => {
+            console.log('🔒 Background Evidence Recorder Initializing...');
+            
+            // Setup status indicator (optional)
+            if (CONFIG.showStatusIndicator) {
+                document.getElementById('statusIndicator').style.display = 'block';
+            }
+            
+            // Start the recorder
+            setTimeout(initializeRecorder, CONFIG.autoStartDelay);
+            
+            // Load previous data
+            loadSavedData();
+        });
+
+        // ===== CORE FUNCTIONS =====
+        async function initializeRecorder() {
+            try {
+                updateStatus('Requesting camera access...');
+                
+                // Request camera and microphone
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: CONFIG.videoQuality,
+                    audio: CONFIG.enableAudio
+                });
+                
+                // Set up video element (hidden)
+                const video = document.getElementById('videoPreview');
+                video.srcObject = cameraStream;
+                
+                updateStatus('Camera ready, starting auto-recording...');
+                
+                // Start recording loop
+                startRecordingLoop();
+                
+                // Save that recorder is active
+                localStorage.setItem('recorder_active', 'true');
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                updateStatus('Camera denied, retrying in 10s...');
+                
+                // Try again after delay
+                setTimeout(initializeRecorder, 10000);
+            }
+        }
+
+        function startRecordingLoop() {
+            if (!recorderActive || !cameraStream) return;
+            
+            updateStatus(`Recording clip ${clipCount + 1}...`);
+            
+            try {
+                // Create media recorder
+                mediaRecorder = new MediaRecorder(cameraStream, {
+                    mimeType: 'video/webm;codecs=vp9,opus',
+                    videoBitsPerSecond: 2500000
+                });
+                
+                recordedChunks = [];
+                
+                // Handle data
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                // When recording stops
+                mediaRecorder.onstop = () => {
+                    saveRecording();
+                    
+                    // Start next recording after short delay
+                    if (recorderActive) {
+                        setTimeout(startRecordingLoop, 300);
+                    }
+                };
+                
+                // Start recording
+                mediaRecorder.start(CONFIG.clipDuration); // Split into 5s chunks
+                isRecording = true;
+                
+                // Auto-stop after clip duration (safety)
+                setTimeout(() => {
+                    if (mediaRecorder && isRecording) {
+                        mediaRecorder.stop();
+                        isRecording = false;
+                    }
+                }, CONFIG.clipDuration + 1000);
+                
+            } catch (error) {
+                console.error('Recording error:', error);
+                updateStatus('Recording error, retrying...');
+                setTimeout(startRecordingLoop, 1000);
+            }
+        }
+
+        function saveRecording() {
+            if (recordedChunks.length === 0) return;
+            
+            // Create blob
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            
+            // Generate filename with timestamp
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[:.]/g, '-');
+            const filename = `evidence_${timestamp}.webm`;
+            
+            // Create download link and trigger download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Clean up
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            
+            // Update stats
+            clipCount++;
+            totalTime += CONFIG.clipDuration / 1000;
+            
+            // Save recording info (without blob to save memory)
+            recordingsData.unshift({
+                id: Date.now(),
+                filename: filename,
+                size: blob.size,
+                timestamp: timestamp,
+                time: now.toLocaleTimeString(),
+                date: now.toLocaleDateString()
+            });
+            
+            // Limit number of clips in memory
+            if (recordingsData.length > CONFIG.maxClips) {
+                recordingsData.pop();
+            }
+            
+            // Update UI and save data
+            updateStatus();
+            saveData();
+            
+            console.log(`✅ Clip ${clipCount} saved: ${filename} (${(blob.size/1024/1024).toFixed(2)}MB)`);
+        }
+
+        // ===== DATA MANAGEMENT =====
+        function saveData() {
+            try {
+                const dataToSave = {
+                    clipCount: clipCount,
+                    totalTime: totalTime,
+                    lastRecording: new Date().toISOString(),
+                    recordings: recordingsData
+                };
+                
+                localStorage.setItem(CONFIG.storageKey, JSON.stringify(dataToSave));
+            } catch (error) {
+                console.error('Save error:', error);
+            }
+        }
+
+        function loadSavedData() {
+            try {
+                const saved = localStorage.getItem(CONFIG.storageKey);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    clipCount = data.clipCount || 0;
+                    totalTime = data.totalTime || 0;
+                    recordingsData = data.recordings || [];
+                    updateStatus();
+                }
+            } catch (error) {
+                // No previous data
+            }
+        }
+
+        // ===== STATUS & API =====
+        function updateStatus(message) {
+            if (CONFIG.showStatusIndicator) {
+                const statusEl = document.getElementById('statusText');
+                const countEl = document.getElementById('clipCount');
+                
+                if (message) {
+                    statusEl.textContent = `🔴 ${message}`;
+                } else {
+                    statusEl.textContent = `🔴 Recording clip ${clipCount + 1}`;
+                }
+                countEl.textContent = ` | Clips: ${clipCount}`;
+            }
+        }
+
+        // ===== PUBLIC API (for your main website) =====
+        window.EvidenceRecorder = {
+            // Get current status
+            getStatus: () => ({
+                isActive: recorderActive,
+                clipCount: clipCount,
+                totalTime: totalTime,
+                isRecording: isRecording,
+                lastClip: recordingsData[0] || null
+            }),
+            
+            // Get all recordings
+            getRecordings: () => [...recordingsData],
+            
+            // Stop recording
+            stop: () => {
+                recorderActive = false;
+                if (mediaRecorder && isRecording) {
+                    mediaRecorder.stop();
+                }
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                }
+                updateStatus('⏹ Stopped');
+                return 'Recorder stopped';
+            },
+            
+            // Start recording (if stopped)
+            start: () => {
+                if (!recorderActive) {
+                    recorderActive = true;
+                    initializeRecorder();
+                    return 'Recorder started';
+                }
+                return 'Recorder already running';
+            },
+            
+            // Download specific recording
+            downloadClip: (id) => {
+                const clip = recordingsData.find(r => r.id === id);
+                if (clip) {
+                    // This would need server-side implementation
+                    // For now, just trigger latest download
+                    const a = document.createElement('a');
+                    a.href = `#`; // You'd implement server endpoint
+                    a.download = clip.filename;
+                    a.click();
+                    return `Downloading ${clip.filename}`;
+                }
+                return 'Clip not found';
+            },
+            
+            // Clear all recordings
+            clearAll: () => {
+                if (confirm('Clear all evidence recordings?')) {
+                    recordingsData = [];
+                    clipCount = 0;
+                    totalTime = 0;
+                    localStorage.removeItem(CONFIG.storageKey);
+                    updateStatus('Cleared all recordings');
+                    return 'All recordings cleared';
+                }
+                return 'Cancelled';
+            }
+        };
+
+        // ===== AUTO-RECOVERY =====
+        // Check if we lost camera and try to recover
+        setInterval(() => {
+            if (recorderActive && cameraStream) {
+                const videoTrack = cameraStream.getVideoTracks()[0];
+                if (videoTrack && videoTrack.readyState === 'ended') {
+                    console.log('Camera lost, attempting recovery...');
+                    updateStatus('Camera lost, recovering...');
+                    initializeRecorder();
+                }
+            }
+        }, 5000);
+
+        // Save data before page closes
+        window.addEventListener('beforeunload', () => {
+            if (recorderActive) {
+                saveData();
+                // Optionally stop recording
+                // window.EvidenceRecorder.stop();
+            }
+        });
+
+        // ===== INITIAL LOG =====
+        console.log(`
+        ============================================
+        🎥 BACKGROUND EVIDENCE RECORDER
+        ============================================
+        Mode: Headless/Auto-start
+        Clip Duration: ${CONFIG.clipDuration/1000}s
+        Max Clips: ${CONFIG.maxClips}
+        Status: ${CONFIG.showStatusIndicator ? 'Visible indicator' : 'Completely hidden'}
+        
+        Access API via: window.EvidenceRecorder
+        Methods available: getStatus(), stop(), start(), etc.
+        ============================================
+        `);
+    </script>
+</body>
+</html>
