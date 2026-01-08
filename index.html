@@ -2560,12 +2560,13 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function sendSubscriptionToServer(subscription) {
-    // You'll implement this to send subscription to your backend
-    console.log('Sending subscription to server:', subscription);
-    
-    // For ESP32 integration, you need a backend server
-    // This endpoint would be called from your ESP32
+  await fetch("/api/save-subscription", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription)
+  });
 }
+
         // ========== EMOTION DETECTION VARIABLES ==========
         let emotionDetectorIframe = null;
         let emotionDetectionActive = false;
