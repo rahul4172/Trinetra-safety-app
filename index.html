@@ -2838,7 +2838,7 @@ async function sendSubscriptionToServer(subscription) {
                 throw error;
             }
         }
-
+        
         // ========== UTILITY FUNCTIONS ==========
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -4788,6 +4788,12 @@ async function sendSubscriptionToServer(subscription) {
                 menuBtn.classList.remove('active');
             }
         });
+
+        // Auto-trigger SOS if app opened from ESP32 notification
+const params = new URLSearchParams(window.location.search);
+if (params.get('sos') === 'true') {
+  triggerSOS();
+}
     </script>
 </body>
 
