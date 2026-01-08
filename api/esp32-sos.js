@@ -1,4 +1,11 @@
-import { activateSOS } from "./sos-status";
+import webpush from "web-push";
+import { subscriptions } from "./save-subscription";
+
+webpush.setVapidDetails(
+  "mailto:admin@trinetra.app",
+  process.env.VAPID_PUBLIC,
+  process.env.VAPID_PRIVATE
+);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,13 +18,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized device" });
   }
 
-  // 🔥 THIS is where it goes
-  activateSOS();
+  const payload = JSON.stringify({
+    title: "🚨 TRINETRA SOS",
+    body: "Emergency triggered from physical button",
+    sos: true
+  });
 
-  console.log("🚨 SOS TRIGGERED FROM ESP32");
+  await Promise.all(
+    subscriptions.map(sub =>
+      webpush.sendNotification(sub, payload).catch(() => {})
+    )
+  );
+
+  console.log("🚨 SOS PUSH SENT");
 
   return res.status(200).json({
     success: true,
-    message: "SOS triggered successfully"
+    message: "SOS push sent"
   });
 }
