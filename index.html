@@ -2533,7 +2533,7 @@ async function getPushSubscription() {
     if (!subscription) {
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY_HERE')
+            applicationServerKey: urlBase64ToUint8Array('BMDdw533ts9BV4Du63RvsMpNuidghW3l1fsG7-UhfH75JKk4jS195yg1QjtxmJqHCZn2X9U6i0QgwEOgBUTsvmM')
         });
         console.log('Push subscription created:', subscription);
         
