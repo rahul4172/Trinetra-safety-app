@@ -1,3 +1,5 @@
+import { activateSOS } from "./sos-status";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
@@ -9,18 +11,13 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized device" });
   }
 
-  try {
-    // 🚨 SOS LOGIC HERE
-    // Example: call WhatsApp API, SMS, email, database, webhook, etc.
+  // 🔥 THIS is where it goes
+  activateSOS();
 
-    console.log("🚨 SOS TRIGGERED FROM ESP32");
+  console.log("🚨 SOS TRIGGERED FROM ESP32");
 
-    return res.status(200).json({
-      success: true,
-      message: "SOS triggered successfully"
-    });
-
-  } catch (err) {
-    return res.status(500).json({ error: "SOS failed" });
-  }
+  return res.status(200).json({
+    success: true,
+    message: "SOS triggered successfully"
+  });
 }
