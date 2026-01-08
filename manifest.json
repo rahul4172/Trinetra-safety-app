@@ -1,0 +1,58 @@
+{
+  "name": "TRINETRA Safety",
+  "short_name": "TRINETRA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0c1d",
+  "theme_color": "#ff4d6d",
+  "description": "AI-powered emergency safety system",
+  "categories": ["safety", "emergency", "security"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trigger SOS",
+      "short_name": "SOS",
+      "description": "Emergency SOS button",
+      "url": "/?sos=true",
+      "icons": [{ "src": "/sos-icon.png", "sizes": "96x96" }]
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+trinetra",
+      "url": "/?sos=%s"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}
