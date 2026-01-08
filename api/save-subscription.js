@@ -1,0 +1,4 @@
+{
+  endpoint,
+  keys: { p256dh, auth }
+}
