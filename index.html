@@ -2426,146 +2426,6 @@
 
         console.log("✅ EmailJS Ready - Service:", EMAILJS_SERVICE_ID);
 
-        // ========== PWA INSTALLATION ==========
-function installPWA() {
-    // Check if PWA already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('Running as PWA');
-        return;
-    }
-    
-    // Show install prompt for browsers that support it
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        window.deferredPrompt = e;
-        
-        // Show custom install button
-        if (!document.getElementById('install-pwa-btn')) {
-            const installBtn = document.createElement('button');
-            installBtn.id = 'install-pwa-btn';
-            installBtn.innerHTML = '📲 Install TRINETRA App';
-            installBtn.style.cssText = `
-                position: fixed;
-                bottom: 100px;
-                right: 20px;
-                background: linear-gradient(135deg, #ff4d6d, #ff8fa3);
-                color: white;
-                border: none;
-                padding: 12px 20px;
-                border-radius: 50px;
-                font-weight: 600;
-                font-family: 'Inter', sans-serif;
-                cursor: pointer;
-                box-shadow: 0 4px 20px rgba(255, 77, 109, 0.3);
-                z-index: 999;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                animation: pulse 2s infinite;
-            `;
-            installBtn.onclick = async () => {
-                if (window.deferredPrompt) {
-                    window.deferredPrompt.prompt();
-                    const { outcome } = await window.deferredPrompt.userChoice;
-                    console.log(`User response to install prompt: ${outcome}`);
-                    window.deferredPrompt = null;
-                    installBtn.remove();
-                }
-            };
-            document.body.appendChild(installBtn);
-            
-            // Auto-hide after 10 seconds
-            setTimeout(() => {
-                if (installBtn.parentNode) {
-                    installBtn.style.opacity = '0';
-                    setTimeout(() => installBtn.remove(), 500);
-                }
-            }, 10000);
-        }
-    });
-}
-
-// ========== SERVICE WORKER REGISTRATION ==========
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(registration => {
-                console.log('✅ Service Worker registered:', registration.scope);
-                
-                // Check for updates every hour
-                setInterval(() => {
-                    registration.update();
-                }, 60 * 60 * 1000);
-            })
-            .catch(error => {
-                console.error('❌ Service Worker registration failed:', error);
-            });
-    }
-}
-
-// ========== PUSH NOTIFICATION PERMISSION ==========
-async function requestPushPermission() {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        console.log('Push notifications not supported');
-        return null;
-    }
-    
-    if (Notification.permission === 'granted') {
-        console.log('Push permission already granted');
-        return await getPushSubscription();
-    }
-    
-    if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Push permission granted');
-            return await getPushSubscription();
-        }
-    }
-    
-    return null;
-}
-
-async function getPushSubscription() {
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
-    
-    if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array('BMDdw533ts9BV4Du63RvsMpNuidghW3l1fsG7-UhfH75JKk4jS195yg1QjtxmJqHCZn2X9U6i0QgwEOgBUTsvmM')
-        });
-        console.log('Push subscription created:', subscription);
-        
-        // Send subscription to your server
-        await sendSubscriptionToServer(subscription);
-    }
-    
-    return subscription;
-}
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-    
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
-
-async function sendSubscriptionToServer(subscription) {
-  await fetch("./api/save-subscription", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription)
-  });
-}
 
         // ========== EMOTION DETECTION VARIABLES ==========
         let emotionDetectorIframe = null;
@@ -4790,11 +4650,22 @@ async function sendSubscriptionToServer(subscription) {
             }
         });
 
-        // Auto-trigger SOS if app opened from ESP32 notification
-const params = new URLSearchParams(window.location.search);
-if (params.get('sos') === 'true') {
-  triggerSOS();
+    
+async function checkESP32SOS() {
+  try {
+    const res = await fetch("http://10.225.1.173/sos"); // replace with ESP32 IP
+    const data = await res.json();
+    if (data.sos) {
+      triggerSOS();
+    }
+  } catch (err) {
+    console.log("ESP32 not reachable:", err);
+  }
 }
+
+// Poll every 500ms
+setInterval(checkESP32SOS, 500);
+
     </script>
 </body>
 
