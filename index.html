@@ -10,6 +10,21 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PWA Manifest -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- iOS PWA Support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TRINETRA">
+<link rel="apple-touch-icon" href="/icon-192.png">
+
+<!-- Theme Color -->
+<meta name="theme-color" content="#ff4d6d" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0c1d" media="(prefers-color-scheme: dark)">
+
+<!-- PWA Splash Screens -->
+<link rel="icon" href="/icon-192.png" type="image/png">
+    <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
 
     <!-- iOS PWA Support -->
@@ -2711,7 +2726,7 @@
                 throw error;
             }
         }
-
+        
         // ========== UTILITY FUNCTIONS ==========
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -4788,6 +4803,23 @@
                 menuBtn.classList.remove('active');
             }
         });
+
+    
+async function checkESP32SOS() {
+  try {
+    const res = await fetch("http://10.225.1.173/sos"); // replace with ESP32 IP
+    const data = await res.json();
+    if (data.sos) {
+      triggerSOS();
+    }
+  } catch (err) {
+    console.log("ESP32 not reachable:", err);
+  }
+}
+
+// Poll every 500ms
+setInterval(checkESP32SOS, 500);
+
 
 
         async function checkESP32SOS() {

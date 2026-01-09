@@ -6,8 +6,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet Routing Machine CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -1042,6 +1049,63 @@
                 top: max(var(--top-bar-height), env(safe-area-inset-top));
             }
         }
+
+        /* Custom marker styles */
+        .custom-marker {
+            background: none !important;
+            border: none !important;
+        }
+
+        /* Routing panel styling */
+        .leaflet-routing-container {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--radius-md) !important;
+            box-shadow: var(--shadow) !important;
+            width: 300px !important;
+            max-height: 400px !important;
+            overflow-y: auto !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+
+        .leaflet-routing-alt {
+            background: var(--light-bg) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            max-height: 200px !important;
+        }
+
+        .leaflet-routing-geocoders {
+            padding: 12px !important;
+        }
+
+        .leaflet-routing-geocoders input {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--radius-sm) !important;
+            color: var(--text-primary) !important;
+            padding: 10px !important;
+            font-size: 14px !important;
+        }
+
+        .leaflet-routing-geocoders button {
+            background: var(--primary-color) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: var(--radius-sm) !important;
+            padding: 8px 12px !important;
+            margin: 5px 0 !important;
+        }
+
+        .leaflet-routing-collapse-btn {
+            background: var(--primary-color) !important;
+            color: white !important;
+            border-radius: 50% !important;
+            width: 32px !important;
+            height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
     </style>
 </head>
 
@@ -1074,6 +1138,9 @@
             </button>
             <button class="map-control-btn" onclick="toggleLegend()" title="Legend">
                 <i class="fas fa-layer-group"></i>
+            </button>
+            <button class="map-control-btn" onclick="showRouteToNearestSafePlace()" title="Route to Nearest Safe Place">
+                <i class="fas fa-route"></i>
             </button>
         </div>
 
@@ -1209,6 +1276,39 @@
         let sidePanelOpen = false;
         let activeView = 'map';
         let emergencyCountdownInterval = null;
+        let routingControl = null;
+
+        // Custom SVG icons for routing
+        const checkmk = `<svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg"><path stroke="black" stroke-width="1.5%" opacity="0.8" fill="brown" d="M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z"></path></svg>`;
+
+        function checkmk_mk(color) {
+            return checkmk.replace(/brown/g, color);
+        }
+
+        const svgpin_Url = encodeURI("data:image/svg+xml;utf-8," + checkmk_mk("#4A6FFF"));
+        const svgpin_Url2 = encodeURI("data:image/svg+xml;utf-8," + checkmk_mk("#00C896"));
+        const svgpin_Url3 = encodeURI("data:image/svg+xml;utf-8," + checkmk_mk("#FF6B8B"));
+
+        const svgpin_Icon = L.icon({
+            iconUrl: svgpin_Url,
+            iconSize: [24, 24],
+            iconAnchor: [12, 24],
+            popupAnchor: [0, -22]
+        });
+        
+        const svgpin_Icon2 = L.icon({
+            iconUrl: svgpin_Url2,
+            iconSize: [24, 24],
+            iconAnchor: [12, 24],
+            popupAnchor: [0, -22]
+        });
+        
+        const svgpin_Icon3 = L.icon({
+            iconUrl: svgpin_Url3,
+            iconSize: [24, 24],
+            iconAnchor: [12, 24],
+            popupAnchor: [0, -22]
+        });
 
         // ==================== INITIALIZATION ====================
         document.addEventListener('DOMContentLoaded', function () {
@@ -1553,7 +1653,7 @@
 
                 return `
                     <div class="place-card ${place.type}" 
-                         onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})"
+                         onclick="showRouteToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})"
                          data-place-id="${place.id}">
                         <div class="place-header">
                             <div class="place-name">
@@ -1581,8 +1681,8 @@
                                     <i class="fas fa-phone"></i> Call
                                 </button>
                             ` : ''}
-                            <button class="place-action-btn navigate" onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')}); event.stopPropagation();">
-                                <i class="fas fa-directions"></i> Navigate
+                            <button class="place-action-btn navigate" onclick="showRouteToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')}); event.stopPropagation();">
+                                <i class="fas fa-directions"></i> Get Directions
                             </button>
                         </div>
                     </div>
@@ -1598,7 +1698,7 @@
             const closestPharmacy = allRealPlaces.filter(p => p.type === 'pharmacy')[0];
 
             container.innerHTML = `
-                <div class="action-btn police" onclick="${closestPolice ? `navigateToPlace(${JSON.stringify(closestPolice)})` : 'alert(\'No police station found nearby\')'}">
+                <div class="action-btn police" onclick="${closestPolice ? `showRouteToPlace(${JSON.stringify(closestPolice)})` : 'alert(\'No police station found nearby\')'}">
                     <div class="icon">
                         <i class="fas fa-shield-alt"></i>
                     </div>
@@ -1606,7 +1706,7 @@
                     <small>${closestPolice ? Math.round(closestPolice.distance) + 'm away' : 'Not found'}</small>
                 </div>
                 
-                <div class="action-btn hospital" onclick="${closestHospital ? `navigateToPlace(${JSON.stringify(closestHospital)})` : 'alert(\'No hospital found nearby\')'}">
+                <div class="action-btn hospital" onclick="${closestHospital ? `showRouteToPlace(${JSON.stringify(closestHospital)})` : 'alert(\'No hospital found nearby\')'}">
                     <div class="icon">
                         <i class="fas fa-hospital"></i>
                     </div>
@@ -1622,7 +1722,7 @@
                     <small>Immediate help</small>
                 </div>
                 
-                <div class="action-btn pharmacy" onclick="${closestPharmacy ? `navigateToPlace(${JSON.stringify(closestPharmacy)})` : 'alert(\'No pharmacy found nearby\')'}">
+                <div class="action-btn pharmacy" onclick="${closestPharmacy ? `showRouteToPlace(${JSON.stringify(closestPharmacy)})` : 'alert(\'No pharmacy found nearby\')'}">
                     <div class="icon">
                         <i class="fas fa-pills"></i>
                     </div>
@@ -1707,7 +1807,7 @@
                                 <i class="fas fa-phone"></i> Call
                             </button>
                         ` : ''}
-                        <button onclick="navigateToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})" 
+                        <button onclick="showRouteToPlace(${JSON.stringify(place).replace(/"/g, '&quot;')})" 
                                 style="margin-top: 12px; padding: 12px; background: #00C896; color: white; border: none; border-radius: 10px; width: ${place.phone ? '48%' : '100%'}; cursor: pointer; font-weight: 600; font-size: 14px;">
                             <i class="fas fa-directions"></i> Directions
                         </button>
@@ -1716,6 +1816,121 @@
 
                 currentMarkers.push(marker);
             });
+        }
+
+        // ==================== ROUTING FUNCTIONS ====================
+        function showRouteToPlace(place) {
+            if (!userLocation || !place) return;
+            
+            updateStatus(`🗺️ Getting route to ${place.name}...`);
+            
+            // Remove existing routing control
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+            
+            // Create new routing control with custom icons
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userLocation[0], userLocation[1]),
+                    L.latLng(place.lat, place.lon)
+                ],
+                routeWhileDragging: false,
+                showAlternatives: false,
+                lineOptions: {
+                    styles: [{ color: '#4A6FFF', opacity: 0.8, weight: 5 }]
+                },
+                createMarker: function(i, wp, nWps) {
+                    if (i === 0) {
+                        // User location marker
+                        return L.marker(wp.latLng, {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `
+                                    <div style="
+                                        background: #00C896;
+                                        width: 52px;
+                                        height: 52px;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        border: 3px solid white;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+                                    ">
+                                        <i class="fas fa-user" style="color: white; font-size: 22px;"></i>
+                                    </div>
+                                `,
+                                iconSize: [52, 52],
+                                iconAnchor: [26, 52]
+                            })
+                        }).bindPopup("<strong>📍 Your Location</strong>");
+                    } else {
+                        // Destination marker
+                        const iconColors = {
+                            'police': '#4A6FFF',
+                            'hospital': '#FF6B8B',
+                            'pharmacy': '#00C896',
+                            'commercial': '#FFA726'
+                        };
+                        
+                        const iconClasses = {
+                            'police': 'fas fa-shield-alt',
+                            'hospital': 'fas fa-hospital',
+                            'pharmacy': 'fas fa-pills',
+                            'commercial': 'fas fa-store'
+                        };
+                        
+                        return L.marker(wp.latLng, {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `
+                                    <div style="
+                                        background: ${iconColors[place.type]};
+                                        width: 52px;
+                                        height: 52px;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        border: 3px solid white;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+                                    ">
+                                        <i class="${iconClasses[place.type]}" style="color: white; font-size: 22px;"></i>
+                                    </div>
+                                `,
+                                iconSize: [52, 52],
+                                iconAnchor: [26, 52]
+                            })
+                        }).bindPopup(`<strong>${place.name}</strong><br>${place.address}`);
+                    }
+                }
+            }).addTo(map);
+            
+            // Fit bounds to show both points
+            const bounds = L.latLngBounds([userLocation, [place.lat, place.lon]]);
+            map.fitBounds(bounds, { padding: [100, 100] });
+            
+            // Update status
+            updateStatus(`✅ Route to ${place.name} displayed`);
+        }
+
+        function showRouteToNearestSafePlace() {
+            if (!userLocation || allRealPlaces.length === 0) {
+                alert("No safe places found nearby. Please wait for location data to load.");
+                return;
+            }
+            
+            const nearestPlace = allRealPlaces[0];
+            showRouteToPlace(nearestPlace);
+        }
+
+        function clearRoute() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+                updateStatus("🗺️ Route cleared");
+            }
         }
 
         // ==================== NAVIGATION & VIEWS ====================
@@ -1774,75 +1989,6 @@
 
         function toggleLegend() {
             document.getElementById('mapLegend').classList.toggle('active');
-        }
-
-        // ==================== PLACE NAVIGATION ====================
-        function navigateToPlace(place) {
-            if (!place || !userLocation) return;
-
-            updateStatus(`🗺️ Navigating to ${place.name}...`);
-
-            // Clear previous routes
-            map.eachLayer(layer => {
-                if (layer instanceof L.Polyline) {
-                    map.removeLayer(layer);
-                }
-            });
-
-            // Draw animated route
-            const route = L.polyline([userLocation, [place.lat, place.lon]], {
-                color: getPlaceColor(place.type),
-                weight: 4,
-                opacity: 0.8,
-                lineJoin: 'round',
-                dashArray: '10, 10',
-                className: 'safe-route'
-            }).addTo(map);
-
-            // Open popup
-            const popupContent = `
-                <div style="text-align:center; min-width: 250px; color: #333; font-family: -apple-system, sans-serif;">
-                    <h4 style="margin: 0 0 10px 0; color: ${getPlaceColor(place.type)}; font-size: 18px;">${place.name}</h4>
-                    <p style="margin: 5px 0; font-weight: 600;">${Math.round(place.distance)}m away</p>
-                    <p style="margin: 5px 0; color: #00C896; font-weight: 600;">${place.walkingTime} minute walk</p>
-                    ${place.phone ? `
-                        <button onclick="callNumber('${place.phone}')" 
-                                style="margin: 10px 5px; padding: 12px; background: ${getPlaceColor(place.type)}; color: white; border: none; border-radius: 10px; width: 48%; cursor: pointer; font-weight: 600;">
-                            <i class="fas fa-phone"></i> Call
-                        </button>
-                    ` : ''}
-                    <button onclick="sharePlace('${place.name}', ${place.lat}, ${place.lon})" 
-                            style="margin: 10px 5px; padding: 12px; background: #00C896; color: white; border: none; border-radius: 10px; width: ${place.phone ? '48%' : '100%'}; cursor: pointer; font-weight: 600;">
-                        <i class="fas fa-share"></i> Share
-                    </button>
-                </div>
-            `;
-
-            map.closePopup();
-
-            L.popup()
-                .setLatLng([place.lat, place.lon])
-                .setContent(popupContent)
-                .openOn(map);
-
-            // Fit bounds
-            const bounds = L.latLngBounds([userLocation, [place.lat, place.lon]]);
-            map.fitBounds(bounds, { padding: [60, 60] });
-
-            // Vibrate on mobile
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
-            }
-        }
-
-        function getPlaceColor(type) {
-            const colors = {
-                'police': '#4A6FFF',
-                'hospital': '#FF6B8B',
-                'pharmacy': '#00C896',
-                'commercial': '#FFA726'
-            };
-            return colors[type] || '#4A6FFF';
         }
 
         // ==================== SEARCH FUNCTIONALITY ====================
@@ -1932,7 +2078,7 @@
             // Navigate to closest safe place
             const closestPlace = allRealPlaces[0];
             if (closestPlace) {
-                setTimeout(() => navigateToPlace(closestPlace), 1000);
+                setTimeout(() => showRouteToPlace(closestPlace), 1000);
             }
 
             // Show emergency alert
@@ -1973,42 +2119,6 @@
                 });
             } else {
                 navigator.clipboard.writeText(message);
-            }
-        }
-
-        function shareMyLocation() {
-            if (!userLocation) return;
-
-            const message = `📍 My current location: https://maps.google.com/?q=${userLocation[0]},${userLocation[1]}`;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: 'My Current Location',
-                    text: message
-                }).catch(err => {
-                    navigator.clipboard.writeText(message);
-                    alert("Location copied to clipboard!");
-                });
-            } else {
-                navigator.clipboard.writeText(message);
-                alert("Location copied to clipboard!");
-            }
-        }
-
-        function sharePlace(name, lat, lon) {
-            const message = `📍 ${name} location: https://maps.google.com/?q=${lat},${lon}`;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: name,
-                    text: message
-                }).catch(err => {
-                    navigator.clipboard.writeText(message);
-                    alert("Location copied!");
-                });
-            } else {
-                navigator.clipboard.writeText(message);
-                alert("Location copied!");
             }
         }
 
@@ -2112,5 +2222,4 @@
         }
     </script>
 </body>
-
 </html>
