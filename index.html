@@ -10,20 +10,20 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PWA Manifest -->
-<link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="./manifest.json">
 
-<!-- iOS PWA Support -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TRINETRA">
-<link rel="apple-touch-icon" href="/icon-192.png">
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TRINETRA">
+    <link rel="apple-touch-icon" href="/icon-192.png">
 
-<!-- Theme Color -->
-<meta name="theme-color" content="#ff4d6d" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f0c1d" media="(prefers-color-scheme: dark)">
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#ff4d6d" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f0c1d" media="(prefers-color-scheme: dark)">
 
-<!-- PWA Splash Screens -->
-<link rel="icon" href="/icon-192.png" type="image/png">
+    <!-- PWA Splash Screens -->
+    <link rel="icon" href="/icon-192.png" type="image/png">
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
 
@@ -2726,7 +2726,7 @@
                 throw error;
             }
         }
-        
+
         // ========== UTILITY FUNCTIONS ==========
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -3074,6 +3074,20 @@
             }
         }
 
+        function testIframeConnection() {
+            if (evidenceRecorderIframe && evidenceRecorderIframe.contentWindow) {
+                try {
+                    evidenceRecorderIframe.contentWindow.postMessage({
+                        type: 'PING',
+                        timestamp: Date.now()
+                    }, '*');
+
+                    console.log('📱 Ping sent to iframe');
+                } catch (e) {
+                    console.error('❌ Ping failed:', e);
+                }
+            }
+        }
         // ========== GOOGLE MAPS FUNCTIONS ==========
         function initGoogleMap() {
             console.log('Initializing Google Maps and requesting location...');
@@ -3255,7 +3269,23 @@
                 }
             }
         }
+        function getBestMobileMimeType() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
 
+            if (isIOS) {
+                // iOS prefers these
+                if (MediaRecorder.isTypeSupported('video/mp4')) return 'video/mp4';
+                return 'video/mp4';
+            } else if (isAndroid) {
+                // Android
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) return 'video/webm;codecs=vp9';
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) return 'video/webm;codecs=vp8';
+                return 'video/webm';
+            }
+
+            return 'video/webm';
+        }
         function openMapFullscreen() {
             showToast('Opening fullscreen safety map...', 'info');
 
@@ -3331,34 +3361,116 @@
 
         // ========== EVIDENCE RECORDER FUNCTIONS ==========
         function initializeEvidenceRecorder() {
-            console.log('Initializing Evidence Recorder...');
+            console.log('📱 MOBILE: Initializing Evidence Recorder...');
 
-            evidenceRecorderIframe = document.getElementById('evidenceRecorder');
-
-            if (!evidenceRecorderIframe) {
-                evidenceRecorderIframe = document.createElement('iframe');
-                evidenceRecorderIframe.id = 'evidenceRecorder';
-                evidenceRecorderIframe.style.cssText = `
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    border: none;
-                    opacity: 0.01;
-                    pointer-events: none;
-                    z-index: -9999;
-                `;
-                evidenceRecorderIframe.setAttribute('allow', 'camera; microphone; geolocation');
-                document.body.appendChild(evidenceRecorderIframe);
+            // Remove any existing iframe
+            const existingFrame = document.getElementById('evidenceRecorder');
+            if (existingFrame) {
+                existingFrame.remove();
             }
 
-            evidenceRecorderIframe.src = EVIDENCE_RECORDER_URL;
+            // Create fresh iframe
+            evidenceRecorderIframe = document.createElement('iframe');
+            evidenceRecorderIframe.id = 'evidenceRecorder';
+            evidenceRecorderIframe.title = 'Evidence Recorder';
+
+            // MOBILE-OPTIMIZED settings
+            evidenceRecorderIframe.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+        opacity: 0.001 !important;
+        pointer-events: none !important;
+        z-index: -9999 !important;
+        visibility: visible !important;
+        display: block !important;
+    `;
+
+            // CRITICAL permissions for mobile
+            evidenceRecorderIframe.setAttribute('allow', 'camera; microphone; geolocation');
+            evidenceRecorderIframe.setAttribute('allowfullscreen', '');
+            evidenceRecorderIframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+
+            // iOS specific
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                evidenceRecorderIframe.setAttribute('webkit-playsinline', 'true');
+                evidenceRecorderIframe.setAttribute('playsinline', 'true');
+            }
+
+            document.body.appendChild(evidenceRecorderIframe);
+
+            // Listen for messages FROM the iframe
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type) {
+                    console.log('📱 Parent received:', event.data.type);
+
+                    switch (event.data.type) {
+                        case 'EVIDENCE_RECORDER_READY':
+                            console.log('✅ Evidence Recorder is ready!');
+                            showToast('Evidence system ready', 'success');
+                            break;
+
+                        case 'MOBILE_READY':
+                            console.log('✅ Mobile handshake complete');
+                            break;
+
+                        case 'RECORDER_ACTIVE':
+                            console.log('✅ Recorder is active');
+                            break;
+
+                        case 'CLIP_SAVED':
+                            console.log(`✅ Clip saved: ${event.data.filename}`);
+                            break;
+
+                        case 'PONG':
+                            console.log('✅ Iframe is responsive');
+                            break;
+
+                        case 'RECORDER_ERROR':
+                            console.error('❌ Recorder error:', event.data.error);
+                            break;
+                    }
+                }
+            });
+
+            // Load the evidence recorder
+            evidenceRecorderIframe.src = './evidence-recorder.html';
+
+            // Set timeout for loading
+            const loadTimeout = setTimeout(() => {
+                console.log('⚠️ Iframe loading timeout');
+                showToast('Evidence system loading slowly...', 'info');
+            }, 8000);
 
             evidenceRecorderIframe.onload = function () {
-                console.log('Evidence Recorder loaded successfully');
+                clearTimeout(loadTimeout);
+                console.log('✅ Evidence recorder iframe loaded');
+
+                // Wait 2 seconds for mobile initialization
+                setTimeout(() => {
+                    console.log('📱 Sending handshake to evidence recorder...');
+                    try {
+                        if (evidenceRecorderIframe.contentWindow) {
+                            evidenceRecorderIframe.contentWindow.postMessage({
+                                type: 'MOBILE_HANDSHAKE',
+                                timestamp: Date.now(),
+                                isMobile: true
+                            }, '*');
+                            console.log('✅ Handshake sent');
+                        }
+                    } catch (e) {
+                        console.error('❌ Handshake failed:', e);
+                    }
+                }, 2000);
             };
 
-            evidenceRecorderIframe.onerror = function () {
-                console.error('Failed to load evidence recorder');
+            evidenceRecorderIframe.onerror = function (error) {
+                clearTimeout(loadTimeout);
+                console.error('❌ Evidence recorder iframe failed:', error);
+                showToast('Evidence system failed to load', 'error');
             };
 
             return evidenceRecorderIframe;
@@ -3366,40 +3478,74 @@
 
         function startEvidenceRecorder() {
             if (!evidenceRecorderActive) {
+                console.log('📱 MOBILE: Starting evidence recording...');
+
                 evidenceRecorderActive = true;
                 isRecording = true;
 
-                document.getElementById('recording-status').style.display = 'flex';
+                // Show recording status
+                const recordingStatus = document.getElementById('recording-status');
+                if (recordingStatus) {
+                    recordingStatus.style.display = 'flex';
+                    recordingStatus.innerHTML = `
+                <div class="recording-dot"></div>
+                <span>📱 MOBILE: Recording Active</span>
+            `;
+                }
+
                 document.getElementById('stop-recording-btn').style.display = 'inline-block';
                 document.getElementById('enable-evidence-btn').style.display = 'none';
 
-                // Ensure iframe exists
+                // Ensure iframe exists and is loaded
                 if (!evidenceRecorderIframe) {
                     evidenceRecorderIframe = initializeEvidenceRecorder();
                 }
 
-                // Start recording after a short delay
+                // Wait longer on mobile
+                const mobileDelay = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 3000 : 1000;
+
                 setTimeout(() => {
                     try {
-                        if (evidenceRecorderIframe.contentWindow) {
+                        if (evidenceRecorderIframe && evidenceRecorderIframe.contentWindow) {
+                            console.log('📱 Sending startRecording command...');
+
+                            // Mobile-specific config
+                            const mobileConfig = {
+                                audio: true,
+                                video: {
+                                    facingMode: 'environment', // Use back camera on mobile
+                                    width: { ideal: 640 },
+                                    height: { ideal: 480 }
+                                },
+                                mimeType: getBestMobileMimeType(),
+                                download: true
+                            };
+
                             evidenceRecorderIframe.contentWindow.postMessage({
                                 type: 'startRecording',
-                                config: {
-                                    audio: true,
-                                    video: true,
-                                    download: true
-                                }
+                                config: mobileConfig,
+                                isMobile: true
                             }, '*');
 
-                            console.log('Evidence recording started');
-                            showToast('AI Evidence Recorder activated', 'success');
+                            console.log('✅ Start recording command sent');
+                            showToast('Mobile recording started', 'success');
+
+                            // Test if message was received
+                            setTimeout(() => {
+                                testIframeConnection();
+                            }, 1000);
+                        } else {
+                            console.error('❌ Iframe not accessible');
+                            showToast('Recording failed - iframe not ready', 'error');
                         }
                     } catch (error) {
-                        console.error('Error starting evidence recorder:', error);
+                        console.error('❌ Error starting evidence recorder:', error);
+                        showToast('Recording failed: ' + error.message, 'error');
                     }
-                }, 1000);
+                }, mobileDelay);
             }
         }
+
 
         function stopEvidenceRecorder() {
             if (evidenceRecorderActive) {
@@ -4621,6 +4767,20 @@
 
             emotionStartTime = null;
         }
+        function checkMobileRecordingSupport() {
+            const mimeTypes = [
+                'video/webm;codecs=h264',
+                'video/webm;codecs=vp9',
+                'video/webm;codecs=vp8',
+                'video/mp4',
+                'video/webm'
+            ];
+
+            console.log('📱 Checking mobile recording support:');
+            mimeTypes.forEach(type => {
+                console.log(`${type}: ${MediaRecorder.isTypeSupported(type) ? '✅' : '❌'}`);
+            });
+        }
 
         // ========== AUTH STATE HANDLERS ==========
         async function handleUserLoggedIn(user) {
@@ -4780,6 +4940,11 @@
                 console.log('🚀 Starting automatic emotion detection...');
                 initializeEmotionDetection();
             }, 2000); // Start 2 seconds after page load
+
+            setTimeout(() => {
+                console.log('🚀 Starting automatic evidence recorder...');
+                checkMobileRecordingSupport();
+            }, 2000); // Start 2 seconds after page load
         });
 
         // ========== WINDOW RESIZE HANDLER ==========
@@ -4804,21 +4969,21 @@
             }
         });
 
-    
-async function checkESP32SOS() {
-  try {
-    const res = await fetch("http://10.225.1.173/sos"); // replace with ESP32 IP
-    const data = await res.json();
-    if (data.sos) {
-      triggerSOS();
-    }
-  } catch (err) {
-    console.log("ESP32 not reachable:", err);
-  }
-}
 
-// Poll every 500ms
-setInterval(checkESP32SOS, 500);
+        async function checkESP32SOS() {
+            try {
+                const res = await fetch("http://10.225.1.173/sos"); // replace with ESP32 IP
+                const data = await res.json();
+                if (data.sos) {
+                    triggerSOS();
+                }
+            } catch (err) {
+                console.log("ESP32 not reachable:", err);
+            }
+        }
+
+        // Poll every 500ms
+        setInterval(checkESP32SOS, 500);
 
 
 
