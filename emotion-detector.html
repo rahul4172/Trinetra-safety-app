@@ -1,479 +1,1181 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
     <title>Emotion Detection Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
+        /* Mobile-first responsive design */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        
+
         body {
-            background: #000;
-            color: #fff;
-            font-family: monospace;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
+            background: transparent;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            touch-action: none;
+            -webkit-text-size-adjust: 100%;
         }
-        
+
+        /* Hidden video element */
+        #video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scaleX(-1);
+            width: 160px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            opacity: 0.001;
+            pointer-events: none;
+            z-index: -9999;
+        }
+
+        /* Status indicator - mobile optimized */
         #status {
             position: fixed;
             top: 10px;
             right: 10px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
+            color: lime;
             padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 10000;
-            border: 1px solid #0f0;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 600;
+            z-index: 9999;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            max-width: 180px;
+            word-break: break-word;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            line-height: 1.3;
         }
-        
-        .emoji-display {
+
+        /* Emergency warning with cancel button */
+        .emergency-warning {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            font-size: 40px;
-            z-index: 10000;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9998;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 25px rgba(255, 77, 109, 0.4);
+            display: none;
+            max-width: 90vw;
+            width: 320px;
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .emergency-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .emergency-header {
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 10px;
+            margin-bottom: 5px;
         }
-        
-        #video {
-            width: 320px;
-            height: 240px;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scaleX(-1);
-            display: none;
-            border: 2px solid #0f0;
+
+        .emergency-icon {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .timer-display {
+            font-size: 28px;
+            font-weight: 800;
+            font-family: monospace;
+            margin: 5px 0;
+            color: white;
+        }
+
+        .emergency-message {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .emergency-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .cancel-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px;
             border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
         }
-        
-        .debug {
+
+        .cancel-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.98);
+        }
+
+        .confirm-btn {
+            flex: 1;
+            background: white;
+            border: none;
+            color: #ff4757;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        /* Countdown progress bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 1s linear;
+            border-radius: 3px;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
             position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 11px;
-            max-width: 300px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ff4d6d;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Permission request */
+        .permission-request {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
             display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .permission-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #ff4d6d;
+        }
+
+        .permission-btn {
+            background: #ff4d6d;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 200px;
+        }
+
+        .permission-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Safe emotion indicator */
+        .safe-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 214, 143, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 9997;
+            display: none;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 4px 15px rgba(0, 214, 143, 0.3);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            #video {
+                width: 140px;
+                height: 105px;
+            }
+            
+            #status {
+                font-size: 10px;
+                padding: 6px 10px;
+                max-width: 150px;
+                top: 5px;
+                right: 5px;
+            }
+            
+            .emergency-warning {
+                width: 95vw;
+                padding: 12px;
+                bottom: 15px;
+            }
+            
+            .timer-display {
+                font-size: 24px;
+            }
+            
+            .emergency-buttons {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #video {
+                width: 120px;
+                height: 90px;
+            }
+            
+            #status {
+                font-size: 9px;
+                padding: 5px 8px;
+                max-width: 130px;
+            }
+            
+            .emergency-warning {
+                padding: 10px;
+            }
+        }
+
+        /* Landscape orientation */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #video {
+                width: 100px;
+                height: 75px;
+            }
+            
+            #status {
+                top: 5px;
+                right: 5px;
+                font-size: 9px;
+                padding: 4px 8px;
+            }
+            
+            .emergency-warning {
+                bottom: 10px;
+                padding: 10px;
+            }
+        }
+
+        /* Tablet */
+        @media (min-width: 768px) {
+            #video {
+                width: 200px;
+                height: 150px;
+            }
+            
+            #status {
+                font-size: 12px;
+                padding: 10px 15px;
+                max-width: 200px;
+            }
+            
+            .emergency-warning {
+                width: 400px;
+            }
+        }
+
+        /* Performance optimizations */
+        .video-container {
+            will-change: transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        /* iOS Safari fixes */
+        @supports (-webkit-touch-callout: none) {
+            #video {
+                opacity: 0.0001;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div id="status">🚀 Initializing...</div>
-    <div class="emoji-display" id="emoji">🤖</div>
-    <video id="video" autoplay muted playsinline></video>
-    <div class="debug" id="debug">
-        Emotion: <span id="debug-emotion">none</span><br>
-        Confidence: <span id="debug-confidence">0%</span><br>
-        FPS: <span id="debug-fps">0</span><br>
-        Detections: <span id="debug-count">0</span>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <h3 style="margin-bottom: 10px; font-size: 18px;">Emotion Guardian</h3>
+        <p style="opacity: 0.8; font-size: 14px; max-width: 300px;">Initializing AI emotion detection system...</p>
     </div>
+
+    <!-- Permission request -->
+    <div class="permission-request" id="permissionRequest">
+        <div class="permission-icon">👁️</div>
+        <h2 style="margin-bottom: 15px; font-size: 22px;">Camera Access Required</h2>
+        <p style="opacity: 0.9; margin-bottom: 20px; font-size: 16px; line-height: 1.5; max-width: 320px;">
+            Emotion Guardian needs camera access to monitor your emotional state for safety. Your privacy is protected - video is processed locally and never stored.
+        </p>
+        <button class="permission-btn" onclick="requestCameraPermission()">
+            Allow Camera Access
+        </button>
+        <p style="margin-top: 15px; font-size: 12px; opacity: 0.6;">
+            Required for automatic emergency detection
+        </p>
+    </div>
+
+    <!-- Status indicator -->
+    <div id="status">Initializing...</div>
+
+    <!-- Safe emotion indicator -->
+    <div class="safe-indicator" id="safeIndicator">
+        ✅ Safe emotion detected
+    </div>
+
+    <!-- Emergency warning with cancel option -->
+    <div class="emergency-warning" id="emergencyWarning">
+        <div class="emergency-content">
+            <div class="emergency-header">
+                <span class="emergency-icon">⚠️</span>
+                <span style="font-weight: 700;">Emotion Alert</span>
+            </div>
+            
+            <div class="timer-display" id="timerDisplay">5s</div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="emergency-message" id="emergencyMessage">
+                Detected persistent negative emotion. SOS will trigger automatically.
+            </div>
+            
+            <div class="emergency-buttons">
+                <button class="cancel-btn" onclick="cancelEmergencyTimer()">
+                    <i class="fas fa-times"></i> I'm OK
+                </button>
+                <button class="confirm-btn" onclick="triggerSOSNow()">
+                    <i class="fas fa-sos"></i> SOS Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden video element -->
+    <div class="video-container">
+        <video id="video" autoplay muted playsinline></video>
+    </div>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script>
         // ========== CONFIGURATION ==========
         const CONFIG = {
-            detectionInterval: 500, // ms between detections
-            minConfidence: 0.3,     // Minimum confidence threshold
-            emojiUpdateDelay: 300,  // Delay for emoji updates
-            parentOrigin: '*',      // Allow messages to any parent
-            enableDebug: false,     // Set to true for debugging
-            modelsUrl: 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'
+            EMERGENCY_EMOTIONS: ['fearful', 'angry', 'sad', 'disgusted', 'surprised'],
+            SAFE_EMOTIONS: ['happy', 'neutral'],
+            SOS_THRESHOLD: 0.6, // 60% confidence
+            SOS_DURATION: 5000, // 5 seconds countdown
+            DETECTION_INTERVAL: 300,
+            MAX_FACE_SIZE: 320,
+            MIN_CONFIDENCE: 0.4,
+            DEBUG_MODE: false
         };
 
-        // ========== GLOBAL STATE ==========
-        let currentEmotion = null;
-        let currentConfidence = 0;
-        let detectionCount = 0;
-        let lastDetectionTime = 0;
-        let fpsCounter = 0;
-        let lastFpsUpdate = Date.now();
-        let videoStream = null;
-        let detectionActive = true;
-
-        // Emotion emoji mapping
-        const EMOTION_EMOJIS = {
-            'happy': '😊',
-            'sad': '😢',
-            'angry': '😠',
-            'fearful': '😨',
-            'disgusted': '🤢',
-            'surprised': '😲',
-            'neutral': '😐'
+        // ========== STATE MANAGEMENT ==========
+        let state = {
+            emergencyStart: null,
+            currentEmergency: null,
+            emotionHistory: [],
+            isActive: false,
+            modelsLoaded: false,
+            cameraStream: null,
+            detectionInterval: null,
+            countdownInterval: null,
+            hasPermission: false,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            timerActive: false,
+            remainingTime: CONFIG.SOS_DURATION,
+            timerPaused: false
         };
 
-        const EMOTION_COLORS = {
-            'happy': '#4CAF50',
-            'sad': '#2196F3',
-            'angry': '#F44336',
-            'fearful': '#9C27B0',
-            'disgusted': '#795548',
-            'surprised': '#FF9800',
-            'neutral': '#9E9E9E'
+        // ========== GLOBAL EMOTION STORE ==========
+        window.currentEmotion = {
+            emotion: null,
+            confidence: 0,
+            timestamp: null,
+            isEmergency: false,
+            faceDetected: false
         };
-
-        // ========== DOM ELEMENTS ==========
-        const statusEl = document.getElementById('status');
-        const emojiEl = document.getElementById('emoji');
-        const videoEl = document.getElementById('video');
-        const debugEl = document.getElementById('debug');
 
         // ========== INITIALIZATION ==========
         async function init() {
-            console.log('🚀 Emotion Detector Service Starting...');
+            console.log('🚀 Starting automatic emotion detection...');
             
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('status').textContent = '🔧 Initializing...';
+            
+            // Notify parent
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    source: 'emotionDetector',
+                    type: 'status',
+                    data: 'starting'
+                }, '*');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await requestCameraAccess();
+        }
+
+        // ========== CAMERA PERMISSION ==========
+        async function requestCameraAccess() {
             try {
-                // Step 1: Start camera
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const hasCamera = devices.some(device => device.kind === 'videoinput' && device.label);
+                
+                if (hasCamera) {
+                    state.hasPermission = true;
+                    startCamera();
+                    return;
+                }
+                
+                if (state.isMobile) {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    document.getElementById('permissionRequest').style.display = 'flex';
+                    return;
+                }
+                
                 await startCamera();
                 
-                // Step 2: Load face-api models
-                await loadModels();
-                
-                // Step 3: Start detection loop
-                startDetectionLoop();
-                
-                // Step 4: Start FPS counter
-                startFpsCounter();
-                
-                // Step 5: Notify parent that we're ready
-                notifyParent('ready', { status: 'active', version: '1.0' });
-                
-                statusEl.textContent = '✅ Active';
-                statusEl.style.color = '#0f0';
-                
-                console.log('✅ Emotion Detector Service Ready');
-                
             } catch (error) {
-                console.error('❌ Initialization failed:', error);
-                statusEl.textContent = '❌ Error: ' + error.message;
-                statusEl.style.color = '#f00';
-                
-                // Notify parent of error
-                notifyParent('error', { message: error.message });
+                console.error('Permission check error:', error);
+                showPermissionRequest();
             }
         }
 
-        // ========== CAMERA SETUP ==========
+        function requestCameraPermission() {
+            document.getElementById('permissionRequest').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            setTimeout(async () => {
+                try {
+                    await startCamera();
+                } catch (error) {
+                    console.error('Camera permission denied:', error);
+                    showError('Camera access denied. Please enable camera in settings.');
+                }
+            }, 500);
+        }
+
         async function startCamera() {
             try {
                 const constraints = {
                     video: {
-                        width: { ideal: 320 },
-                        height: { ideal: 240 },
-                        frameRate: { ideal: 15 },
-                        facingMode: "user"
+                        width: { ideal: 320, max: 640 },
+                        height: { ideal: 240, max: 480 },
+                        frameRate: { ideal: 15, max: 30 },
+                        facingMode: 'user',
+                        aspectRatio: 1.333
                     },
                     audio: false
                 };
-
-                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoEl.srcObject = videoStream;
                 
-                // Wait for video to be ready
-                await new Promise((resolve) => {
-                    videoEl.onloadedmetadata = () => {
-                        videoEl.play().then(resolve).catch(resolve);
+                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                    constraints.video = {
+                        width: { ideal: 320 },
+                        height: { ideal: 240 },
+                        frameRate: { ideal: 15 },
+                        facingMode: 'user'
+                    };
+                }
+
+                console.log('Requesting camera with constraints:', constraints);
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                state.cameraStream = stream;
+                state.hasPermission = true;
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        video.play().then(resolve).catch(resolve);
                     };
                 });
-
-                console.log('📹 Camera started successfully');
+                
+                console.log('✅ Camera access granted');
+                await loadModels();
                 
             } catch (error) {
-                console.error('❌ Camera error:', error);
-                throw new Error('Camera access denied or not available');
+                console.error('Camera error:', error);
+                showPermissionRequest();
+                
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        source: 'emotionDetector',
+                        type: 'error',
+                        data: error.message
+                    }, '*');
+                }
             }
+        }
+
+        function showPermissionRequest() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('permissionRequest').style.display = 'flex';
         }
 
         // ========== MODEL LOADING ==========
         async function loadModels() {
-            statusEl.textContent = '🤖 Loading AI models...';
-            
             try {
-                // Load face detection model
-                await faceapi.nets.tinyFaceDetector.loadFromUri(CONFIG.modelsUrl);
-                console.log('✅ TinyFaceDetector loaded');
+                console.log('Loading AI models...');
+                document.getElementById('status').textContent = '🤖 Loading AI models...';
                 
-                // Load emotion recognition model
-                await faceapi.nets.faceExpressionNet.loadFromUri(CONFIG.modelsUrl);
-                console.log('✅ FaceExpressionNet loaded');
+                const modelPath = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
                 
-                // Optional: Load face landmarks for better accuracy
-                try {
-                    await faceapi.nets.faceLandmark68Net.loadFromUri(CONFIG.modelsUrl);
-                    console.log('✅ FaceLandmark68Net loaded');
-                } catch (e) {
-                    console.log('⚠️ Face landmarks not available, continuing without');
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+                    faceapi.nets.faceExpressionNet.loadFromUri(modelPath)
+                ]);
+                
+                state.modelsLoaded = true;
+                console.log('✅ Models loaded successfully');
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+                startDetection();
+                
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        source: 'emotionDetector',
+                        type: 'status',
+                        data: 'ready'
+                    }, '*');
                 }
                 
             } catch (error) {
-                console.error('❌ Model loading failed:', error);
-                throw new Error('Failed to load AI models');
+                console.error('Model loading error:', error);
+                showError('Failed to load AI models. Please check internet connection.');
             }
         }
 
-        // ========== DETECTION LOOP ==========
-        function startDetectionLoop() {
-            async function detect() {
-                if (!detectionActive) return;
+        // ========== EMOTION DETECTION ==========
+        function startDetection() {
+            if (!state.modelsLoaded || !state.cameraStream) {
+                console.error('Cannot start detection: models or camera not ready');
+                return;
+            }
+            
+            state.isActive = true;
+            document.getElementById('status').textContent = '✅ Active';
+            document.getElementById('status').style.color = 'lime';
+            
+            console.log('Starting emotion detection loop...');
+            state.detectionInterval = setInterval(detectEmotion, CONFIG.DETECTION_INTERVAL);
+            
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    source: 'emotionDetector',
+                    type: 'status',
+                    data: 'detection_started'
+                }, '*');
+            }
+        }
+
+        async function detectEmotion() {
+            if (!state.isActive || state.timerPaused) return;
+            
+            try {
+                const video = document.getElementById('video');
                 
-                fpsCounter++;
+                const options = new faceapi.TinyFaceDetectorOptions({
+                    inputSize: state.isMobile ? 160 : 224,
+                    scoreThreshold: 0.5
+                });
                 
-                try {
-                    // Detect face with expressions
-                    const detection = await faceapi
-                        .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({
-                            inputSize: 224,
-                            scoreThreshold: CONFIG.minConfidence
-                        }))
-                        .withFaceExpressions();
+                const result = await faceapi
+                    .detectSingleFace(video, options)
+                    .withFaceExpressions();
+                
+                if (result) {
+                    const expressions = result.expressions;
+                    let topEmotion = 'neutral';
+                    let topScore = 0;
                     
-                    if (detection) {
-                        detectionCount++;
-                        const expressions = detection.expressions;
-                        
-                        // Find the emotion with highest score
-                        let topEmotion = 'neutral';
-                        let topScore = 0;
-                        
-                        for (const [emotion, score] of Object.entries(expressions)) {
-                            if (score > topScore) {
-                                topScore = score;
-                                topEmotion = emotion;
-                            }
+                    Object.entries(expressions).forEach(([emotion, score]) => {
+                        if (score > topScore) {
+                            topScore = score;
+                            topEmotion = emotion;
                         }
-                        
-                        // Only update if confidence is above threshold
-                        if (topScore >= CONFIG.minConfidence) {
-                            const confidence = Math.round(topScore * 100);
-                            const emotionData = {
+                    });
+                    
+                    const confidence = Math.round(topScore * 100);
+                    const now = Date.now();
+                    
+                    window.currentEmotion = {
+                        emotion: topEmotion,
+                        confidence: confidence,
+                        timestamp: now,
+                        rawScores: expressions,
+                        isEmergency: false,
+                        faceDetected: true
+                    };
+                    
+                    const statusEmoji = topEmotion === 'happy' ? '😊' : 
+                                      topEmotion === 'sad' ? '😢' :
+                                      topEmotion === 'angry' ? '😠' :
+                                      topEmotion === 'fearful' ? '😨' :
+                                      topEmotion === 'surprised' ? '😲' :
+                                      topEmotion === 'disgusted' ? '🤢' : '😐';
+                    
+                    document.getElementById('status').textContent = 
+                        `${statusEmoji} ${topEmotion} (${confidence}%)`;
+                    
+                    // Check for emergency WITHOUT resetting timer
+                    checkForEmergency(topEmotion, topScore, now);
+                    
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            source: 'emotionDetector',
+                            type: 'emotionData',
+                            data: {
                                 emotion: topEmotion,
                                 confidence: confidence,
-                                rawScores: expressions,
-                                timestamp: Date.now(),
-                                detectionId: detectionCount
-                            };
-                            
-                            // Update state
-                            currentEmotion = topEmotion;
-                            currentConfidence = confidence;
-                            lastDetectionTime = Date.now();
-                            
-                            // Update UI
-                            updateEmoji(topEmotion);
-                            updateStatus(topEmotion, confidence);
-                            
-                            // Send to parent
-                            sendEmotionData(emotionData);
-                            
-                            // Update debug info if enabled
-                            if (CONFIG.enableDebug) {
-                                updateDebugInfo(emotionData);
+                                timestamp: now,
+                                faceDetected: true,
+                                emergency: window.currentEmotion.isEmergency,
+                                timerActive: state.timerActive
                             }
-                        } else {
-                            // No confident emotion detected
-                            updateEmoji('neutral');
-                            sendEmotionData({
-                                emotion: 'neutral',
-                                confidence: 0,
-                                timestamp: Date.now(),
-                                detectionId: detectionCount
-                            });
-                        }
-                    } else {
-                        // No face detected
-                        updateEmoji('no_face');
-                        sendEmotionData({
-                            emotion: 'no_face',
-                            confidence: 0,
-                            timestamp: Date.now(),
-                            detectionId: detectionCount
-                        });
+                        }, '*');
                     }
                     
-                } catch (error) {
-                    console.error('❌ Detection error:', error);
-                    // Don't stop on error, just continue
+                    if (CONFIG.DEBUG_MODE) {
+                        console.log(`Detected: ${topEmotion} (${confidence}%)`);
+                    }
+                    
+                } else {
+                    window.currentEmotion = {
+                        emotion: 'no_face',
+                        confidence: 0,
+                        timestamp: Date.now(),
+                        isEmergency: false,
+                        faceDetected: false
+                    };
+                    
+                    document.getElementById('status').textContent = '👁️ No face';
+                    
+                    // Don't reset timer when no face is detected
+                    // The timer continues running if already started
+                    
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            source: 'emotionDetector',
+                            type: 'emotionData',
+                            data: {
+                                emotion: 'no_face',
+                                confidence: 0,
+                                timestamp: Date.now(),
+                                faceDetected: false,
+                                emergency: false,
+                                timerActive: state.timerActive
+                            }
+                        }, '*');
+                    }
                 }
                 
-                // Schedule next detection
-                setTimeout(detect, CONFIG.detectionInterval);
+            } catch (error) {
+                if (CONFIG.DEBUG_MODE) {
+                    console.error('Detection error:', error);
+                }
             }
-            
-            // Start the loop
-            detect();
         }
 
-        // ========== UI UPDATES ==========
-        function updateEmoji(emotion) {
-            const emoji = EMOTION_EMOJIS[emotion] || '🤔';
-            const color = EMOTION_COLORS[emotion] || '#666';
+        // ========== EMERGENCY CHECK - PERSISTENT TIMER ==========
+        function checkForEmergency(emotion, score, timestamp) {
+            const isEmergency = CONFIG.EMERGENCY_EMOTIONS.includes(emotion) && 
+                               score >= CONFIG.SOS_THRESHOLD;
             
-            // Update emoji with smooth transition
-            emojiEl.textContent = emoji;
-            emojiEl.style.color = color;
-            emojiEl.style.textShadow = `0 0 10px ${color}80`;
+            const isSafe = CONFIG.SAFE_EMOTIONS.includes(emotion) && 
+                          score >= CONFIG.MIN_CONFIDENCE;
             
-            // Add subtle animation
-            emojiEl.style.transform = 'scale(1.1)';
+            if (isEmergency) {
+                // If timer is not already running, start it
+                if (!state.timerActive && !state.emergencyStart) {
+                    state.emergencyStart = timestamp;
+                    state.currentEmergency = emotion;
+                    state.timerActive = true;
+                    state.remainingTime = CONFIG.SOS_DURATION;
+                    
+                    console.log(`⚠️ Emergency emotion detected: ${emotion}. Starting 5s timer...`);
+                    
+                    // Start the timer
+                    startEmergencyTimer(emotion, score);
+                    
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            source: 'emotionDetector',
+                            type: 'emotionEmergency',
+                            data: {
+                                emotion: emotion,
+                                confidence: Math.round(score * 100),
+                                action: 'timer_started',
+                                duration: 0,
+                                remainingTime: CONFIG.SOS_DURATION
+                            }
+                        }, '*');
+                    }
+                    
+                } else if (state.timerActive) {
+                    // Timer is already running - don't reset it
+                    // Just update the current emotion
+                    state.currentEmergency = emotion;
+                    
+                    if (CONFIG.DEBUG_MODE) {
+                        console.log(`Continuing timer for: ${emotion}`);
+                    }
+                }
+                
+            } else if (isSafe && state.timerActive) {
+                // Safe emotion detected but timer continues
+                // Show safe indicator but don't cancel timer
+                showSafeIndicator();
+                
+                if (CONFIG.DEBUG_MODE) {
+                    console.log('Safe emotion detected, but timer continues...');
+                }
+            }
+        }
+
+        // ========== EMERGENCY TIMER FUNCTIONS ==========
+        function startEmergencyTimer(emotion, score) {
+            // Show emergency warning
+            const emergencyWarning = document.getElementById('emergencyWarning');
+            const emergencyMessage = document.getElementById('emergencyMessage');
+            
+            emergencyMessage.textContent = `Detected ${emotion} with ${Math.round(score * 100)}% confidence. SOS will trigger automatically.`;
+            emergencyWarning.style.display = 'block';
+            
+            // Hide safe indicator if shown
+            document.getElementById('safeIndicator').style.display = 'none';
+            
+            // Start countdown
+            updateTimerDisplay();
+            state.countdownInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            if (state.timerPaused || !state.timerActive) return;
+            
+            state.remainingTime -= 1000;
+            
+            if (state.remainingTime <= 0) {
+                // Time's up - trigger SOS
+                clearInterval(state.countdownInterval);
+                triggerSOS(state.currentEmergency, 
+                          window.currentEmotion.confidence || 70, 
+                          CONFIG.SOS_DURATION);
+                return;
+            }
+            
+            updateTimerDisplay();
+            
+            // Update parent
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    source: 'emotionDetector',
+                    type: 'timerUpdate',
+                    data: {
+                        remainingTime: state.remainingTime,
+                        emotion: state.currentEmergency,
+                        progress: ((CONFIG.SOS_DURATION - state.remainingTime) / CONFIG.SOS_DURATION) * 100
+                    }
+                }, '*');
+            }
+        }
+
+        function updateTimerDisplay() {
+            const seconds = Math.ceil(state.remainingTime / 1000);
+            const progress = ((CONFIG.SOS_DURATION - state.remainingTime) / CONFIG.SOS_DURATION) * 100;
+            
+            document.getElementById('timerDisplay').textContent = `${seconds}s`;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            
+            // Change color based on time remaining
+            const progressBar = document.getElementById('progressBar');
+            if (seconds <= 2) {
+                progressBar.style.background = '#ff0000';
+            } else if (seconds <= 3) {
+                progressBar.style.background = '#ff6b6b';
+            } else {
+                progressBar.style.background = 'white';
+            }
+        }
+
+        // ========== CANCEL TIMER FUNCTION ==========
+        function cancelEmergencyTimer() {
+            console.log('⏹️ Emergency timer cancelled by user');
+            
+            // Clear interval
+            if (state.countdownInterval) {
+                clearInterval(state.countdownInterval);
+                state.countdownInterval = null;
+            }
+            
+            // Reset state
+            state.emergencyStart = null;
+            state.currentEmergency = null;
+            state.timerActive = false;
+            state.remainingTime = CONFIG.SOS_DURATION;
+            state.timerPaused = false;
+            
+            // Hide warning
+            document.getElementById('emergencyWarning').style.display = 'none';
+            
+            // Show safe indicator
+            showSafeIndicator();
+            
+            // Update status
+            document.getElementById('status').textContent = '✅ Timer cancelled';
             setTimeout(() => {
-                emojiEl.style.transform = 'scale(1)';
-            }, 150);
-        }
-
-        function updateStatus(emotion, confidence) {
-            const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
-            statusEl.textContent = `✅ ${emotionText} (${confidence}%)`;
-            statusEl.style.color = EMOTION_COLORS[emotion] || '#fff';
-        }
-
-        // ========== PARENT COMMUNICATION ==========
-        function sendEmotionData(data) {
-            // Method 1: Send via postMessage
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    type: 'emotionData',
-                    source: 'emotionDetector',
-                    data: data
-                }, CONFIG.parentOrigin);
-            }
-            
-            // Method 2: Dispatch custom event (for same-origin iframes)
-            try {
-                window.parent.dispatchEvent(new CustomEvent('emotionUpdate', {
-                    detail: data
-                }));
-            } catch (e) {
-                // This may fail if cross-origin, that's okay
-            }
-        }
-
-        function notifyParent(type, data) {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    type: type,
-                    source: 'emotionDetector',
-                    data: data
-                }, CONFIG.parentOrigin);
-            }
-        }
-
-        // ========== DEBUG UTILITIES ==========
-        function updateDebugInfo(data) {
-            if (debugEl.style.display === 'none') {
-                debugEl.style.display = 'block';
-            }
-            
-            document.getElementById('debug-emotion').textContent = data.emotion;
-            document.getElementById('debug-confidence').textContent = data.confidence + '%';
-            document.getElementById('debug-count').textContent = detectionCount;
-        }
-
-        function startFpsCounter() {
-            setInterval(() => {
-                const now = Date.now();
-                const elapsed = now - lastFpsUpdate;
-                const fps = Math.round((fpsCounter * 1000) / elapsed);
-                
-                if (CONFIG.enableDebug) {
-                    document.getElementById('debug-fps').textContent = fps;
+                if (state.isActive) {
+                    document.getElementById('status').textContent = '✅ Active';
                 }
-                
-                fpsCounter = 0;
-                lastFpsUpdate = now;
-            }, 1000);
+            }, 2000);
+            
+            // Notify parent
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    source: 'emotionDetector',
+                    type: 'emotionEmergency',
+                    data: {
+                        action: 'timer_cancelled',
+                        emotion: state.currentEmergency,
+                        remainingTime: 0
+                    }
+                }, '*');
+            }
         }
 
-        // ========== CONTROL FUNCTIONS ==========
-        function startDetection() {
-            detectionActive = true;
-            notifyParent('started', { timestamp: Date.now() });
-            console.log('▶️ Detection started');
+        // ========== TRIGGER SOS IMMEDIATELY ==========
+        function triggerSOSNow() {
+            console.log('🚨 SOS triggered manually');
+            
+            // Clear timer
+            if (state.countdownInterval) {
+                clearInterval(state.countdownInterval);
+                state.countdownInterval = null;
+            }
+            
+            // Trigger SOS
+            triggerSOS(state.currentEmergency, 
+                      window.currentEmotion.confidence || 80, 
+                      CONFIG.SOS_DURATION - state.remainingTime);
+        }
+
+        // ========== TRIGGER SOS ==========
+        function triggerSOS(emotion, confidence, duration) {
+            console.log(`🚨 AUTO-SOS: ${emotion} at ${confidence}% after ${duration}ms`);
+            
+            // Reset timer state
+            state.emergencyStart = null;
+            state.currentEmergency = null;
+            state.timerActive = false;
+            state.remainingTime = CONFIG.SOS_DURATION;
+            
+            // Hide warning
+            document.getElementById('emergencyWarning').style.display = 'none';
+            
+            // Update status
+            window.currentEmotion.isEmergency = true;
+            document.getElementById('status').textContent = `🚨 ${emotion} - SOS!`;
+            document.getElementById('status').style.color = '#ff4444';
+            document.getElementById('status').style.background = 'rgba(255, 0, 0, 0.2)';
+            
+            // Notify parent
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'EMOTION_SOS',
+                    source: 'emotionDetector',
+                    emotion: emotion,
+                    confidence: confidence,
+                    duration: duration,
+                    timestamp: Date.now(),
+                    action: 'auto_sos_triggered'
+                }, '*');
+            }
+            
+            // Dispatch event
+            window.dispatchEvent(new CustomEvent('emotionSOSTriggered', {
+                detail: {
+                    emotion: emotion,
+                    confidence: confidence,
+                    duration: duration,
+                    timestamp: Date.now()
+                }
+            }));
+            
+            // Call parent function if exists
+            if (window.parent && window.parent.triggerSOSFromEmotion) {
+                window.parent.triggerSOSFromEmotion();
+            }
+            
+            // Reset status after delay
+            setTimeout(() => {
+                if (state.isActive) {
+                    document.getElementById('status').style.color = 'lime';
+                    document.getElementById('status').style.background = 'rgba(0, 0, 0, 0.85)';
+                }
+            }, 5000);
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+        function showSafeIndicator() {
+            const safeIndicator = document.getElementById('safeIndicator');
+            safeIndicator.style.display = 'block';
+            
+            setTimeout(() => {
+                safeIndicator.style.display = 'none';
+            }, 3000);
+        }
+
+        function showError(message) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingOverlay').innerHTML = `
+                <div style="color: #ff6b6b; font-size: 40px; margin-bottom: 20px;">❌</div>
+                <h3 style="margin-bottom: 10px; color: #ff6b6b;">Error</h3>
+                <p style="opacity: 0.8; font-size: 14px; max-width: 300px;">${message}</p>
+                <button onclick="location.reload()" style="
+                    background: #ff4d6d;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 25px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-top: 20px;
+                    cursor: pointer;
+                ">
+                    Retry
+                </button>
+            `;
         }
 
         function stopDetection() {
-            detectionActive = false;
-            notifyParent('stopped', { timestamp: Date.now() });
-            console.log('⏸️ Detection stopped');
-        }
-
-        function getStatus() {
-            return {
-                active: detectionActive,
-                emotion: currentEmotion,
-                confidence: currentConfidence,
-                detectionCount: detectionCount,
-                lastDetection: lastDetectionTime,
-                cameraActive: !!videoStream
-            };
-        }
-
-        // ========== EXPOSE API ==========
-        window.EmotionDetector = {
-            start: startDetection,
-            stop: stopDetection,
-            getStatus: getStatus,
-            getCurrentEmotion: () => ({ emotion: currentEmotion, confidence: currentConfidence })
-        };
-
-        // ========== MESSAGE LISTENER ==========
-        window.addEventListener('message', (event) => {
-            // Accept messages from any origin for flexibility
-            if (event.data && event.data.type === 'control') {
-                const command = event.data.command;
-                
-                switch (command) {
-                    case 'start':
-                        startDetection();
-                        break;
-                    case 'stop':
-                        stopDetection();
-                        break;
-                    case 'getStatus':
-                        notifyParent('status', getStatus());
-                        break;
-                    case 'ping':
-                        notifyParent('pong', { timestamp: Date.now() });
-                        break;
-                }
+            if (state.detectionInterval) {
+                clearInterval(state.detectionInterval);
+                state.detectionInterval = null;
             }
-        });
+            
+            if (state.countdownInterval) {
+                clearInterval(state.countdownInterval);
+                state.countdownInterval = null;
+            }
+            
+            state.isActive = false;
+            state.timerActive = false;
+            state.timerPaused = false;
+            
+            document.getElementById('status').textContent = '⏸️ Stopped';
+            document.getElementById('status').style.color = '#ffaa00';
+            document.getElementById('emergencyWarning').style.display = 'none';
+            document.getElementById('safeIndicator').style.display = 'none';
+        }
 
-        // ========== ERROR HANDLING ==========
-        window.addEventListener('error', (event) => {
-            console.error('❌ Global error:', event.error);
-            notifyParent('error', { 
-                message: event.error.message,
-                stack: event.error.stack 
-            });
+        // ========== MESSAGE HANDLING ==========
+        window.addEventListener('message', function(event) {
+            if (!event.data || !event.data.type) return;
+            
+            switch (event.data.type) {
+                case 'startDetection':
+                    console.log('Received start detection command');
+                    if (!state.isActive) {
+                        startDetection();
+                    }
+                    break;
+                    
+                case 'stopDetection':
+                    console.log('Received stop detection command');
+                    stopDetection();
+                    break;
+                    
+                case 'cancelTimer':
+                    console.log('Received cancel timer command');
+                    cancelEmergencyTimer();
+                    break;
+                    
+                case 'pauseTimer':
+                    state.timerPaused = true;
+                    console.log('Timer paused');
+                    break;
+                    
+                case 'resumeTimer':
+                    state.timerPaused = false;
+                    console.log('Timer resumed');
+                    break;
+                    
+                case 'getStatus':
+                    if (event.source) {
+                        event.source.postMessage({
+                            source: 'emotionDetector',
+                            type: 'statusResponse',
+                            data: {
+                                active: state.isActive,
+                                emotion: window.currentEmotion,
+                                timerActive: state.timerActive,
+                                remainingTime: state.remainingTime,
+                                hasCamera: state.hasPermission,
+                                modelsLoaded: state.modelsLoaded
+                            }
+                        }, '*');
+                    }
+                    break;
+            }
         });
 
         // ========== CLEANUP ==========
-        window.addEventListener('beforeunload', () => {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
+        window.addEventListener('beforeunload', function() {
+            stopDetection();
+            
+            if (state.cameraStream) {
+                state.cameraStream.getTracks().forEach(track => track.stop());
             }
-            notifyParent('closed', { timestamp: Date.now() });
+            
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    source: 'emotionDetector',
+                    type: 'status',
+                    data: 'closed'
+                }, '*');
+            }
         });
 
-        // ========== START EVERYTHING ==========
-        document.addEventListener('DOMContentLoaded', init);
-        
-        // Auto-start detection
-        setTimeout(startDetection, 2000);
+        // ========== START AUTOMATICALLY ==========
+        window.addEventListener('load', function() {
+            console.log('Emotion detector loaded, starting automatically...');
+            
+            setTimeout(() => {
+                init().catch(error => {
+                    console.error('Initialization failed:', error);
+                    showError('Failed to initialize emotion detection');
+                });
+            }, 500);
+        });
 
+        // ========== EXPOSE FUNCTIONS ==========
+        window.getCurrentEmotion = function() {
+            return window.currentEmotion;
+        };
+
+        window.cancelEmergencyTimer = cancelEmergencyTimer;
+        window.triggerSOSNow = triggerSOSNow;
+        
+        window.testEmergency = function() {
+            triggerSOS('fearful', 85, 5000);
+        };
+        
+        window.restartDetection = function() {
+            stopDetection();
+            setTimeout(() => {
+                startDetection();
+            }, 1000);
+        };
     </script>
 </body>
 </html>
