@@ -4989,7 +4989,7 @@
 
         async function checkESP32SOS() {
             try {
-                const res = await fetch("http://10.225.1.173/sos"); // replace with ESP32 IP
+                const res = await fetch("http://10.16.107.173/sos"); // replace with ESP32 IP
                 const data = await res.json();
                 if (data.sos) {
                     triggerSOS();
