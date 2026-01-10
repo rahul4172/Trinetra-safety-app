@@ -470,12 +470,13 @@
         const CONFIG = {
             EMERGENCY_EMOTIONS: ['fearful', 'angry', 'sad', 'disgusted', 'surprised'],
             SAFE_EMOTIONS: ['happy', 'neutral'],
-            SOS_THRESHOLD: 0.6, // 60% confidence
+            SOS_THRESHOLD: 0.7, // Increased from 0.6 to 0.7 (70% confidence)
             SOS_DURATION: 5000, // 5 seconds countdown
-            DETECTION_INTERVAL: 300,
+            DETECTION_INTERVAL: 500, // Increased from 300ms to 500ms for better performance
             MAX_FACE_SIZE: 320,
             MIN_CONFIDENCE: 0.4,
-            DEBUG_MODE: false
+            DEBUG_MODE: true, // Changed to true for debugging
+            EMERGENCY_PERSISTENCE_REQUIRED: 3 // Number of consecutive detections required
         };
 
         // ========== STATE MANAGEMENT ==========
@@ -492,7 +493,9 @@
             isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
             timerActive: false,
             remainingTime: CONFIG.SOS_DURATION,
-            timerPaused: false
+            timerPaused: false,
+            consecutiveEmergencyCount: 0,
+            lastSafeEmotionTime: null
         };
 
         // ========== GLOBAL EMOTION STORE ==========
@@ -728,7 +731,7 @@
                     document.getElementById('status').textContent = 
                         `${statusEmoji} ${topEmotion} (${confidence}%)`;
                     
-                    // Check for emergency WITHOUT resetting timer
+                    // Check for emergency with persistence logic
                     checkForEmergency(topEmotion, topScore, now);
                     
                     if (window.parent !== window) {
@@ -741,13 +744,14 @@
                                 timestamp: now,
                                 faceDetected: true,
                                 emergency: window.currentEmotion.isEmergency,
-                                timerActive: state.timerActive
+                                timerActive: state.timerActive,
+                                consecutiveEmergencyCount: state.consecutiveEmergencyCount
                             }
                         }, '*');
                     }
                     
                     if (CONFIG.DEBUG_MODE) {
-                        console.log(`Detected: ${topEmotion} (${confidence}%)`);
+                        console.log(`Detected: ${topEmotion} (${confidence}%) - Consecutive: ${state.consecutiveEmergencyCount}`);
                     }
                     
                 } else {
@@ -761,8 +765,8 @@
                     
                     document.getElementById('status').textContent = '👁️ No face';
                     
-                    // Don't reset timer when no face is detected
-                    // The timer continues running if already started
+                    // Reset consecutive count when no face is detected
+                    state.consecutiveEmergencyCount = 0;
                     
                     if (window.parent !== window) {
                         window.parent.postMessage({
@@ -787,7 +791,7 @@
             }
         }
 
-        // ========== EMERGENCY CHECK - PERSISTENT TIMER ==========
+        // ========== EMERGENCY CHECK - WITH PERSISTENCE LOGIC ==========
         function checkForEmergency(emotion, score, timestamp) {
             const isEmergency = CONFIG.EMERGENCY_EMOTIONS.includes(emotion) && 
                                score >= CONFIG.SOS_THRESHOLD;
@@ -796,50 +800,68 @@
                           score >= CONFIG.MIN_CONFIDENCE;
             
             if (isEmergency) {
-                // If timer is not already running, start it
-                if (!state.timerActive && !state.emergencyStart) {
-                    state.emergencyStart = timestamp;
-                    state.currentEmergency = emotion;
-                    state.timerActive = true;
-                    state.remainingTime = CONFIG.SOS_DURATION;
-                    
-                    console.log(`⚠️ Emergency emotion detected: ${emotion}. Starting 5s timer...`);
-                    
-                    // Start the timer
-                    startEmergencyTimer(emotion, score);
-                    
-                    if (window.parent !== window) {
-                        window.parent.postMessage({
-                            source: 'emotionDetector',
-                            type: 'emotionEmergency',
-                            data: {
-                                emotion: emotion,
-                                confidence: Math.round(score * 100),
-                                action: 'timer_started',
-                                duration: 0,
-                                remainingTime: CONFIG.SOS_DURATION
-                            }
-                        }, '*');
-                    }
-                    
-                } else if (state.timerActive) {
-                    // Timer is already running - don't reset it
-                    // Just update the current emotion
-                    state.currentEmergency = emotion;
-                    
-                    if (CONFIG.DEBUG_MODE) {
-                        console.log(`Continuing timer for: ${emotion}`);
-                    }
-                }
-                
-            } else if (isSafe && state.timerActive) {
-                // Safe emotion detected but timer continues
-                // Show safe indicator but don't cancel timer
-                showSafeIndicator();
+                // Increment consecutive emergency count
+                state.consecutiveEmergencyCount++;
                 
                 if (CONFIG.DEBUG_MODE) {
-                    console.log('Safe emotion detected, but timer continues...');
+                    console.log(`Emergency emotion: ${emotion} (${state.consecutiveEmergencyCount}/${CONFIG.EMERGENCY_PERSISTENCE_REQUIRED})`);
                 }
+                
+                // Check if we've reached the required consecutive count
+                if (state.consecutiveEmergencyCount >= CONFIG.EMERGENCY_PERSISTENCE_REQUIRED) {
+                    // If timer is not already running, start it
+                    if (!state.timerActive && !state.emergencyStart) {
+                        state.emergencyStart = timestamp;
+                        state.currentEmergency = emotion;
+                        state.timerActive = true;
+                        state.remainingTime = CONFIG.SOS_DURATION;
+                        
+                        console.log(`⚠️ Emergency emotion detected ${CONFIG.EMERGENCY_PERSISTENCE_REQUIRED} times: ${emotion}. Starting 5s timer...`);
+                        
+                        // Start the timer
+                        startEmergencyTimer(emotion, score);
+                        
+                        if (window.parent !== window) {
+                            window.parent.postMessage({
+                                source: 'emotionDetector',
+                                type: 'emotionEmergency',
+                                data: {
+                                    emotion: emotion,
+                                    confidence: Math.round(score * 100),
+                                    action: 'timer_started',
+                                    duration: 0,
+                                    remainingTime: CONFIG.SOS_DURATION,
+                                    consecutiveCount: state.consecutiveEmergencyCount
+                                }
+                            }, '*');
+                        }
+                    } else if (state.timerActive) {
+                        // Timer is already running - don't reset it
+                        if (CONFIG.DEBUG_MODE) {
+                            console.log(`Continuing timer for: ${emotion}`);
+                        }
+                    }
+                }
+                
+            } else if (isSafe) {
+                // Safe emotion detected - reset consecutive count
+                state.consecutiveEmergencyCount = 0;
+                state.lastSafeEmotionTime = Date.now();
+                
+                if (state.timerActive) {
+                    // If safe emotion is detected, cancel the timer
+                    console.log('✅ Safe emotion detected, cancelling timer...');
+                    cancelEmergencyTimer();
+                } else {
+                    showSafeIndicator();
+                }
+                
+                if (CONFIG.DEBUG_MODE) {
+                    console.log('Safe emotion detected, resetting consecutive count');
+                }
+            } else {
+                // Neither emergency nor safe emotion - reset consecutive count
+                state.consecutiveEmergencyCount = 0;
             }
         }
 
@@ -884,7 +906,8 @@
                     data: {
                         remainingTime: state.remainingTime,
                         emotion: state.currentEmergency,
-                        progress: ((CONFIG.SOS_DURATION - state.remainingTime) / CONFIG.SOS_DURATION) * 100
+                        progress: ((CONFIG.SOS_DURATION - state.remainingTime) / CONFIG.SOS_DURATION) * 100,
+                        consecutiveCount: state.consecutiveEmergencyCount
                     }
                 }, '*');
             }
@@ -910,7 +933,7 @@
 
         // ========== CANCEL TIMER FUNCTION ==========
         function cancelEmergencyTimer() {
-            console.log('⏹️ Emergency timer cancelled by user');
+            console.log('⏹️ Emergency timer cancelled');
             
             // Clear interval
             if (state.countdownInterval) {
@@ -924,6 +947,7 @@
             state.timerActive = false;
             state.remainingTime = CONFIG.SOS_DURATION;
             state.timerPaused = false;
+            state.consecutiveEmergencyCount = 0;
             
             // Hide warning
             document.getElementById('emergencyWarning').style.display = 'none';
@@ -971,13 +995,14 @@
 
         // ========== TRIGGER SOS ==========
         function triggerSOS(emotion, confidence, duration) {
-            console.log(`🚨 AUTO-SOS: ${emotion} at ${confidence}% after ${duration}ms`);
+            console.log(`🚨 AUTO-SOS: ${emotion} at ${confidence}% after ${duration}ms and ${state.consecutiveEmergencyCount} consecutive detections`);
             
             // Reset timer state
             state.emergencyStart = null;
             state.currentEmergency = null;
             state.timerActive = false;
             state.remainingTime = CONFIG.SOS_DURATION;
+            state.consecutiveEmergencyCount = 0;
             
             // Hide warning
             document.getElementById('emergencyWarning').style.display = 'none';
@@ -997,7 +1022,8 @@
                     confidence: confidence,
                     duration: duration,
                     timestamp: Date.now(),
-                    action: 'auto_sos_triggered'
+                    action: 'auto_sos_triggered',
+                    consecutiveCount: state.consecutiveEmergencyCount
                 }, '*');
             }
             
@@ -1007,7 +1033,8 @@
                     emotion: emotion,
                     confidence: confidence,
                     duration: duration,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    consecutiveCount: state.consecutiveEmergencyCount
                 }
             }));
             
@@ -1071,6 +1098,7 @@
             state.isActive = false;
             state.timerActive = false;
             state.timerPaused = false;
+            state.consecutiveEmergencyCount = 0;
             
             document.getElementById('status').textContent = '⏸️ Stopped';
             document.getElementById('status').style.color = '#ffaa00';
@@ -1121,7 +1149,8 @@
                                 timerActive: state.timerActive,
                                 remainingTime: state.remainingTime,
                                 hasCamera: state.hasPermission,
-                                modelsLoaded: state.modelsLoaded
+                                modelsLoaded: state.modelsLoaded,
+                                consecutiveEmergencyCount: state.consecutiveEmergencyCount
                             }
                         }, '*');
                     }
